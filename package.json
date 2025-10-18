@@ -1,0 +1,28 @@
+{
+  "name": "pixel_pirates",
+  "version": "1.0.0",
+  "description": "**Penny** is a cute virtual pet that reacts to your financial data. Track your income, spending, savings, debt, and investments, and watch Penny's health change in real time! 🥚💖",
+  "main": "config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Happytatoes/Pixel_Pirates.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Happytatoes/Pixel_Pirates/issues"
+  },
+  "homepage": "https://github.com/Happytatoes/Pixel_Pirates#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "node-fetch": "^3.3.2"
+  }
+}

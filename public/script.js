@@ -1,3 +1,4 @@
+import { analyzeFinancialData } from './gemini-service.js';
 
 // Temporary debug function - add at the top of script.js
 window.debugGemini = async function() {
@@ -159,9 +160,9 @@ async function handleSubmit() {
     // Show analyzing state
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
-    submitBtn.textContent = '🤔 Analyzing with AI...';
+    submitBtn.textContent = 'Analyzing with AI...';
     
-    document.getElementById('petMessage').textContent = '🤖 Gemini is analyzing your finances... This might take a moment!';
+    document.getElementById('petMessage').textContent = 'Gemini is analyzing your finances... This might take a moment!';
 
     try {
         // Call Gemini API
@@ -174,7 +175,7 @@ async function handleSubmit() {
         console.error('Analysis failed:', error);
         
         // Show error message
-        document.getElementById('petMessage').textContent = '😵 Oops! Something went wrong. Try again?';
+        document.getElementById('petMessage').textContent = 'Oops! Something went wrong. Try again?';
         
         // Optionally use fallback
         // const fallback = getFallbackAnalysis(formData);
@@ -183,7 +184,7 @@ async function handleSubmit() {
     } finally {
         // Re-enable button
         submitBtn.disabled = false;
-        submitBtn.textContent = '🍼 Feed FinPet';
+        submitBtn.textContent = 'Feed Penny 🍼';
     }
 }
 

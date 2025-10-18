@@ -1,33 +1,16 @@
 // gemini-service.js
 
 
+import { API_CONFIG } from './config.js';
 
 /**
  * Calls Gemini API to analyze financial data
  * @param {Object} financialData - User's financial information
  * @returns {Promise<Object>} - Analysis result with score, state, and message
  */
-/*
-async function analyzeFinancialData(financialData) {
-    try {
-        // Build the prompt for Gemini
-        const prompt = buildFinancialPrompt(financialData);
-        
-        // Call Gemini API
-        const response = await callGeminiAPI(prompt);
-        
-        // Parse the response
-        const analysis = parseGeminiResponse(response);
-        
-        return analysis;
-    } catch (error) {
-        console.error('Error analyzing financial data:', error);
-        throw error;
-    }
-}
-*/
 
-async function analyzeFinancialData(data) {
+
+export async function analyzeFinancialData(data) {
     try {
         const prompt = `You are Penny, a virtual pet whose health depends on the user's finances.
 Respond ONLY with JSON in this exact format:
