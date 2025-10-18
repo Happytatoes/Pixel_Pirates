@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penny - Your Financial Pet</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <span class="coin-icon">💰</span>
+                    <h1>Penny</h1>
+                </div>
+            
+            </div>
+
+            <!-- Pet Display Area -->
+            <div class="pet-area" id="petArea">
+                <!-- Speech Bubble -->
+                <div class="speech-bubble">
+                    <p id="petMessage">Feed me your financial data! I'm ready to hatch! 🥚</p>
+                    <div class="bubble-tail"></div>
+                </div>
+
+                <!-- Pet -->
+                <div class="pet" id="pet">🥚</div>
+
+                <!-- State Name -->
+                <div class="state-name" id="stateName">EGG</div>
+
+                <!-- Stats -->
+                <div class="stats" id="stats" style="display: none;">
+                    <div class="stat-bar">
+                        <div class="stat-header">
+                            <span class="stat-label">❤️ Health</span>
+                            <span class="stat-value" id="healthValue">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill health-fill" id="healthBar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Form -->
+            <div class="form-area">
+                <h2 class="form-title">
+                    <span class="sparkle-icon">✨</span>
+                    Financial Snapshot
+                </h2>
+
+                <div class="input-group">
+                    <label>Monthly Income</label>
+                    <input type="number" id="income" placeholder="4000">
+                </div>
+
+                <div class="input-group">
+                    <label>Monthly Spending</label>
+                    <input type="number" id="spending" placeholder="3000">
+                </div>
+
+                <div class="input-group">
+                    <label>Total Savings</label>
+                    <input type="number" id="savings" placeholder="5000">
+                </div>
+
+                <div class="input-group">
+                    <label>Total Debt</label>
+                    <input type="number" id="debt" placeholder="2000">
+                </div>
+
+                <div class="input-group">
+                    <label>Monthly Investments</label>
+                    <input type="number" id="monthlyInvestments" placeholder="500">
+                </div>
+
+                <div class="input-group">
+                    <label>Total Investment Balance</label>
+                    <input type="number" id="investmentBalance" placeholder="10000">
+                </div>
+
+                <button class="submit-btn" id="submitBtn">
+                    Feed Penny 🍼
+                </button>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p>Your pet's health depends on your financial decisions</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="gemini-service.js"></script>
+    <script src="script.js"></script>  <!-- YOU'RE MISSING THIS! -->
+</body>
+</html>
