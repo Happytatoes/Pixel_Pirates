@@ -1,5 +1,42 @@
 import { analyzeFinancialData } from './gemini-service.js';
 
+window.switchPage = function(pageId) {
+    console.log('Switching to:', pageId); // Debug
+    
+    // Hide all pages
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(page => page.classList.remove('active'));
+    
+    // Show target page
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.classList.add('active');
+    }
+    
+    // Update nav buttons
+    const navBtns = document.querySelectorAll('.nav-btn');
+    navBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(pageId)) {
+            btn.classList.add('active');
+        }
+    });
+};
+
+
+function savePetState(state) {
+    localStorage.setItem('pennyState', JSON.stringify(state));
+}
+
+// Load state on page load
+function loadPetState() {
+    const saved = localStorage.getItem('pennyState');
+    if (saved) {
+        const state = JSON.parse(saved);
+        updatePetDisplay(state);
+    }
+}
+
 // Temporary debug function - add at the top of script.js
 window.debugGemini = async function() {
     const testData = {
@@ -135,6 +172,7 @@ function updatePetDisplay(petState) {
 }
 
 // NEW: Handle Form Submission with Gemini API
+/*
 async function handleSubmit() {
     const income = document.getElementById('income').value;
     const spending = document.getElementById('spending').value;
@@ -165,11 +203,16 @@ async function handleSubmit() {
     document.getElementById('petMessage').textContent = 'Gemini is analyzing your finances... This might take a moment!';
 
     try {
-        // Call Gemini API
         const analysis = await analyzeFinancialData(formData);
-        
-        // Update display with Gemini's analysis
         updatePetDisplay(analysis);
+        savePetState(analysis);
+
+        // NEW: Save last update time
+        localStorage.setItem('lastUpdate', new Date().toLocaleString());
+        document.getElementById('lastUpdate').textContent = 'Just now';
+        
+        // NEW: Switch to pet view to see results
+        document.querySelector('[data-page="petView"]').click();
 
     } catch (error) {
         console.error('Analysis failed:', error);
@@ -186,10 +229,63 @@ async function handleSubmit() {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Feed Penny 🍼';
     }
+}*/
+async function handleSubmit() {
+    const income = document.getElementById('income').value;
+    const spending = document.getElementById('spending').value;
+    const savings = document.getElementById('savings').value;
+    const debt = document.getElementById('debt').value;
+    const monthlyInvestments = document.getElementById('monthlyInvestments').value;
+    const investmentBalance = document.getElementById('investmentBalance').value;
+
+    if (!income || !spending || !savings || !debt || !monthlyInvestments || !investmentBalance) {
+        alert('Please fill in all fields!');
+        return;
+    }
+
+    const formData = {
+        income,
+        spending,
+        savings,
+        debt,
+        monthlyInvestments,
+        investmentBalance
+    };
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Analyzing with AI...';
+    
+    document.getElementById('petMessage').textContent = 'Gemini is analyzing your finances... This might take a moment!';
+
+    try {
+        const analysis = await analyzeFinancialData(formData);
+        updatePetDisplay(analysis);
+        
+        // Save last update time
+        const now = new Date().toLocaleString();
+        localStorage.setItem('lastUpdate', now);
+        document.getElementById('lastUpdate').textContent = 'Just now';
+        
+        // Switch back to pet view to see results!
+        window.switchPage('petView');
+
+    } catch (error) {
+        console.error('Analysis failed:', error);
+        document.getElementById('petMessage').textContent = 'Oops! Something went wrong. Try again?';
+        
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Feed Penny 🍼';
+    }
 }
 
 // Event Listeners (keep these)
 document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadPetState();
+});
 
 document.querySelectorAll('input').forEach(input => {
     input.addEventListener('keypress', (e) => {
