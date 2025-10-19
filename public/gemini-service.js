@@ -3,7 +3,8 @@
 // Adds (not erases) new advice to the bubble.
 // Sends structured numeric inputs so the server can compute deterministically.
 // Adds a timeout so the UI never hangs waiting for a response.
-// Style enforcement: no emojis, no parentheses, no colons; full sentences in plain English.
+// Kid-mode style: full, simple sentences a 10-year-old can understand.
+// No emojis, no parentheses, no colons, no symbols like %, ~, <=, >=, /, and no jargon.
 
 const TIMEOUT_MS = 15000; // hard stop so UI never hangs
 
@@ -14,7 +15,7 @@ export async function analyzeFinancialData(data) {
 
     const { ok, json } = await postJson(
       '/analyze',
-      { prompt, inputs, client: 'web-1.5' },
+      { prompt, inputs, client: 'web-1.7' },
       TIMEOUT_MS
     );
 
@@ -63,24 +64,27 @@ async function postJson(url, body, timeoutMs) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Prompt for legacy servers — plain full sentences, no emoji/()/:            */
+/* Prompt for legacy servers — kid friendly, game-y, no emoji/()/:/symbols    */
 /* -------------------------------------------------------------------------- */
 
 function buildFinancialPrompt(data) {
   return `
-You are Penny, a kind money helper. Explain like you are talking to a ten year old.
+You are Penny, a kind money helper in a game. Speak so a ten year old understands.
+Pretend this is a pet game. Your words help the pet level up.
 
 Style rules:
 - No emojis
 - No parentheses
 - No colons
+- No symbols like percent signs or slashes or less than or greater than
 - Use short full sentences in plain English
-- Do not use hard words like DTI, ratio, runway, leverage, liquidity, cash flow
-- Use simple phrases like: money you bring in each month, money you spend each month, savings you already have, money you owe, money you invest each month, investment account total
-- Write numbers clearly with words like percent, months, dollars
+- Do not use hard words like DTI or ratio or runway
+- Use simple phrases like money you bring in each month, money you spend each month, savings you already have, money you owe, money you invest each month, investment account total
+- Write numbers with words like percent, months, dollars
 - Each sentence should include one clear number
+- JSON ONLY, no code fences, no extra keys
 
-Return JSON ONLY in this exact shape (no extra keys, no code fences):
+Return EXACTLY this shape:
 {
   "state": "FLATLINED|CRITICAL|STRUGGLING|SURVIVING|HEALTHY|THRIVING|LEGENDARY",
   "health": 0,
@@ -89,10 +93,10 @@ Return JSON ONLY in this exact shape (no extra keys, no code fences):
 }
 
 What to write:
-- headline = one friendly sentence that sums up how they are doing
-- advice[0] = one positive sentence about a clear strength with a number
-- advice[1] = one helpful fix with a number
-- advice[2] = one simple goal for next week with a number
+- headline = one friendly sentence that explains how the pet is doing in the game
+- advice[0] = one positive sentence with a number that says what is going well
+- advice[1] = one helpful change with a number that makes the pet stronger
+- advice[2] = one simple goal for next week with a number that is easy to try
 
 User data:
 - monthly_income: ${numOrZero(data.income)}
@@ -103,7 +107,6 @@ User data:
 - investment_balance: ${numOrZero(data.investmentBalance)}
 `.trim();
 }
-
 
 /* --------------------------------- Helpers -------------------------------- */
 
@@ -139,35 +142,70 @@ function looksNormalized(obj){
 }
 
 /* ----------------------------- Text sanitizing ----------------------------- */
-// Remove emojis, parentheses, and colons; expand '%' to ' percent', 'mo' to 'months'.
-// Keep periods and ensure full sentences end with a period.
+// Remove emojis, parentheses, colons, and symbols; rewrite jargon; fix grammar.
+// Make sentences full and kid-simple.
 function sanitizeLine(s) {
   let t = String(s || '');
 
-  // Remove emoji-like ranges (misc symbols + SMP pictographs)
-  t = t.replace(/[\u2600-\u26FF\u{1F300}-\u{1FAFF}]/gu, '');
+  // Remove emoji-like ranges AND hidden fragments (ZWJ/VS/ZWSP/FEFF)
+  t = t.replace(/[\u2600-\u26FF\u{1F300}-\u{1FAFF}\u200B-\u200D\uFE0F\uFEFF]/gu, '');
 
   // Remove parentheses and colons
-  t = t.replace(/[():]/g, '');
+  t = t.replace(/[():]/g, ' ');
 
-  // Expand common shorthand
-  t = t.replace(/%/g, ' percent');
+  // Expand symbols → words
+  t = t.replace(/<=|≤/g, ' at or below ');
+  t = t.replace(/>=|≥/g, ' at or above ');
+  t = t.replace(/~/g,  ' about ');
+  t = t.replace(/%/g,  ' percent ');
+  // Slashes → per
+  t = t.replace(/\b(\d+)\s*\/\s*(wk|week)\b/gi, '$1 per week');
+  t = t.replace(/\b(\d+)\s*\/\s*(mo|month)\b/gi, '$1 per month');
+  t = t.replace(/\b(\d+)\s*\/\s*(yr|year)\b/gi, '$1 per year');
+  t = t.replace(/\//g, ' per ');
+
+  // Jargon → simple words
+  t = t.replace(/\bDTI\b/gi, 'debt to income');
+  t = t.replace(/\brunway\b/gi, 'months of savings');
+  // Avoid odd phrasing like "spend percent 50 percent"
+  t = t.replace(/\bratio\b/gi, 'share');
+
+  // Remove label-y starts if the model slipped them in
+  t = t.replace(/^\s*(good|fix|goal( next week)?)\b[\s\-]*/i, '');
+
+  // Normalize units and phrases
   t = t.replace(/\bmo\b/gi, 'months');
-  t = t.replace(/\bmo\./gi, 'months');
+  t = t.replace(/\bmo\.\b/gi, 'months');
+  t = t.replace(/\bper\s*cent\b/gi, 'percent');
 
-  // Normalize spaces
+  // Clean repeats like "percent percent"
+  t = t.replace(/\bpercent\s+percent\b/gi, 'percent');
+
+  // Gentle grammar polish for common patterns
+  // "spending share 50 percent" → "you spend 50 percent of your money"
+  t = t.replace(/\bspend(?:ing)?\s+share\s+(\d+(?:\.\d+)?)\s+percent\b/i, 'you spend $1 percent of your money');
+  // "share 50 percent" → "the share is 50 percent"
+  t = t.replace(/\bshare\s+(\d+(?:\.\d+)?)\s+percent\b/i, 'the share is $1 percent');
+  // "months of savings 10 months" → "you have 10 months of savings"
+  t = t.replace(/\bmonths of savings\s+(\d+(?:\.\d+)?)\s+months\b/i, 'you have $1 months of savings');
+  // "debt to income 40 percent" → "your debt is 40 percent of your income"
+  t = t.replace(/\bdebt to income\s+(\d+(?:\.\d+)?)\s+percent\b/i, 'your debt is $1 percent of your income');
+
+  // Collapse whitespace
   t = t.replace(/\s+/g, ' ').trim();
 
-  // Ensure a period at the end for full sentence feel (unless already ends with . ! ?)
-  if (!/[.!?]$/.test(t) && t.length) t += '.';
-
+  // Capitalize first letter; ensure a period at end
+  if (t) {
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+    if (!/[.!?]$/.test(t)) t += '.';
+  }
   return t;
 }
 
-function shorten(s, max = 96) {
+function shorten(s, max = 140) {
   const t = String(s || '').trim();
   if (t.length <= max) return t;
-  const cut = t.slice(0, max).replace(/\s+\S*$/, ''); // cut at last whole word
+  const cut = t.slice(0, max).replace(/\s+\S*$/, '');
   return cut.replace(/[.!?]+$/,'') + '.';
 }
 
@@ -187,7 +225,7 @@ function finalizeForUI(obj){
   const isAnalyzing = /analyzing/i.test(currentText);
 
   // Sanitize and simplify headline + bullets
-  let headline = sanitizeLine(shorten(obj.headline || obj.message || '', 96));
+  let headline = sanitizeLine(shorten(obj.headline || obj.message || '', 140));
   let advice   = (Array.isArray(obj.advice) ? obj.advice : [])
     .map(a => sanitizeLine(shorten(a)))
     .filter(Boolean);
@@ -196,7 +234,7 @@ function finalizeForUI(obj){
 
   // Base: prefer new headline; otherwise keep previous unless it was the analyzing line
   const baseRaw = headline || (isAnalyzing ? '' : currentText);
-  const base = sanitizeLine(shorten(baseRaw, 96));
+  const base = sanitizeLine(shorten(baseRaw, 140));
   const bullets = advice.length ? advice.map(b => `• ${b}`).join('\n') : '';
   const message = bullets ? (base ? `${base}\n${bullets}` : bullets) : (base || '');
 
@@ -221,36 +259,36 @@ function clamp0to100(x){
 }
 
 /* ---------------- Local deterministic fallback (client-side) --------------- */
-// Generates simple, clear, emoji-free sentences if server/LLM fails.
+// Generates simple, clear, kid-friendly sentences if server/LLM fails.
 function computeLocalFallback(inputs){
   const m = localMetrics(inputs);
   const state = localPickState(m);
   const health = localHealth(m);
 
   const headline =
-    state === 'LEGENDARY' ? 'Legend energy. Keep going.' :
-    state === 'THRIVING'  ? 'Strong path. Stay steady.'   :
-    state === 'HEALTHY'   ? 'Solid footing. Nice work.'    :
-    state === 'SURVIVING' ? 'We are okay. Let’s tighten a bit.'  :
-    state === 'STRUGGLING'? 'Pressure is building. Quick wins help.' :
-    state === 'CRITICAL'  ? 'This is critical. Protect cash now.'  :
-                            'Flatlined. Emergency mode.';
+    state === 'LEGENDARY' ? 'You are doing great and very strong.' :
+    state === 'THRIVING'  ? 'You are doing well and moving forward.' :
+    state === 'HEALTHY'   ? 'You are steady and in a good place.' :
+    state === 'SURVIVING' ? 'You are okay and small steps will help.'  :
+    state === 'STRUGGLING'? 'Things feel tight and quick wins will help.' :
+    state === 'CRITICAL'  ? 'This is serious and we should protect cash now.'  :
+                            'This is an emergency and we must act now.';
 
   const pct = x => isFinite(x) ? `${Math.round(x*100)} percent` : 'infinite';
   const advice = [
     (m.budget_ratio <= 0.8)
-      ? `Your spending is ${pct(m.budget_ratio)} which is under the target.`
+      ? `You spend ${pct(m.budget_ratio)} of your money which is under the target.`
       : (m.runway_months >= 3)
-        ? `You have ${m.runway_months.toFixed(1)} months of runway which is a good base.`
-        : `You picked a clear place to start and that is good.`,
+        ? `You have ${m.runway_months.toFixed(1)} months of savings which is a strong base.`
+        : `You found a clear place to start and that is good.`,
     (m.budget_ratio > 0.9)
-      ? `Trim spending by about ${Math.ceil((m.budget_ratio-0.9)*100)} percent to reach ninety percent.`
+      ? `Trim your spending by about ${Math.ceil((m.budget_ratio-0.9)*100)} percent to reach the goal.`
       : (m.invest_rate < 0.10)
-        ? `Raise investing to ten percent you are at ${pct(m.invest_rate)} now.`
+        ? `Raise your investing to ten percent because you are at ${pct(m.invest_rate)} now.`
         : `Choose one category to cut this week and stick to it.`,
     (m.invest_rate < 0.10)
-      ? `Set an automatic transfer of ${Math.max(1, Math.ceil(((m.inc||0)*0.10)/4))} each week.`
-      : `Track spending daily and keep the ratio at or below eighty percent.`
+      ? `Set an automatic transfer of ${Math.max(1, Math.ceil(((m.inc||0)*0.10)/4))} dollars each week.`
+      : `Track your spending each day and try to keep it at or below eighty percent.`
   ].map(sanitizeLine).map(s => shorten(s));
 
   return { state: localPickState(m), health, headline: sanitizeLine(headline), advice, message: '' };
