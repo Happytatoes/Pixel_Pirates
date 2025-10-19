@@ -194,6 +194,112 @@ app.post('/analyze', async (req, res) => {
   }
 });
 
+/* -------------------------------------------------------------------------- */
+/*                              Nessie API proxy                              */
+/*
+ * If you provide a NESSIE_API_KEY and NESSIE_CUSTOMER_ID in your .env file the
+ * server will fetch your mock banking data from Capital One’s hackathon API.
+ * It aggregates the current balance across all accounts as well as deposits,
+ * purchases and withdrawals over the last 30 days.  Those aggregates are used
+ * to prefill the client‑side form so users don’t have to manually enter
+ * monthly earnings or spending.  All network calls are proxied through the
+ * backend so your API key remains hidden from the browser.
+ */
+
+app.get('/nessie-data', async (req, res) => {
+  const apiKey = process.env.NESSIE_API_KEY;
+  const customerId = process.env.NESSIE_CUSTOMER_ID;
+  if (!apiKey || !customerId) {
+    return res.status(400).json({ error: 'NESSIE_API_KEY and NESSIE_CUSTOMER_ID must be set in .env' });
+  }
+  // Base URL for the Nessie API.  We use https by default; the port is
+  // optional because the API is served over standard ports.
+  const baseUrl = 'https://api.reimaginebanking.com';
+  try {
+    const accountsResp = await fetch(`${baseUrl}/customers/${customerId}/accounts?key=${apiKey}`);
+    const accounts = await accountsResp.json();
+    if (!Array.isArray(accounts)) {
+      return res.status(500).json({ error: 'Unexpected accounts response from Nessie' });
+    }
+    let initialBalance = 0;
+    let totalSavings = 0;
+    let totalDebt = 0;
+    let investmentBalance = 0;
+    let monthlyEarnings = 0;
+    let monthlySpending = 0;
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Helper to parse a date string.  If parsing fails it returns epoch 0 so
+    // comparisons will likely exclude the transaction.
+    const toDate = (s) => {
+      try { return new Date(s); } catch { return new Date(0); }
+    };
+
+    for (const account of accounts) {
+      const accBalance = Number(account.balance) || 0;
+      initialBalance += accBalance;
+      const type = String(account.type || '').toLowerCase();
+      if (type.includes('savings')) totalSavings += accBalance;
+      if (type.includes('credit')) totalDebt += Math.abs(accBalance);
+      if (type.includes('investment')) investmentBalance += accBalance;
+      const accId = account._id || account.id || account.account_id;
+      if (!accId) continue;
+      // deposits (income)
+      try {
+        const depResp = await fetch(`${baseUrl}/accounts/${accId}/deposits?key=${apiKey}`);
+        const deposits = await depResp.json();
+        if (Array.isArray(deposits)) {
+          for (const d of deposits) {
+            const dt = toDate(d.transaction_date);
+            if (dt >= thirtyDaysAgo) monthlyEarnings += Number(d.amount) || 0;
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching deposits for', accId, err);
+      }
+      // purchases (spending)
+      try {
+        const purResp = await fetch(`${baseUrl}/accounts/${accId}/purchases?key=${apiKey}`);
+        const purchases = await purResp.json();
+        if (Array.isArray(purchases)) {
+          for (const p of purchases) {
+            const dt = toDate(p.purchase_date || p.transaction_date);
+            if (dt >= thirtyDaysAgo) monthlySpending += Number(p.amount) || 0;
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching purchases for', accId, err);
+      }
+      // withdrawals (spending)
+      try {
+        const wResp = await fetch(`${baseUrl}/accounts/${accId}/withdrawals?key=${apiKey}`);
+        const withdrawals = await wResp.json();
+        if (Array.isArray(withdrawals)) {
+          for (const w of withdrawals) {
+            const dt = toDate(w.transaction_date);
+            if (dt >= thirtyDaysAgo) monthlySpending += Number(w.amount) || 0;
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching withdrawals for', accId, err);
+      }
+    }
+    return res.json({
+      initialBalance,
+      monthlyEarnings,
+      monthlySpending,
+      totalSavings,
+      totalDebt,
+      monthlyInvestments: 0,
+      investmentBalance
+    });
+  } catch (err) {
+    console.error('Nessie error', err);
+    res.status(500).json({ error: 'Failed to retrieve Nessie data', details: err && err.message });
+  }
+});
+
 /* -------------------------- Local advice fallback --------------------------- */
 
 function buildLocalAdvice(m, state) {

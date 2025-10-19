@@ -1,5 +1,6 @@
 // script.js
 import { analyzeFinancialData } from './gemini-service.js';
+import { fetchNessieData } from './nessie-service.js';
 
 /*
  * Persistent progress helpers
@@ -23,6 +24,26 @@ let overallAnalysis = null;
 // called with isTemporary=false, we save the analysis into overallHealthState.
 let revertTimeout = null;
 let overallHealthState = null;
+
+// Prefill form fields with Nessie data on page load.  This runs once when
+// the DOM is ready.  If the Nessie endpoint is not configured or returns
+// an error the catch block silently ignores the failure and leaves fields
+// blank for manual entry.
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const data = await fetchNessieData();
+    if (data && typeof data === 'object') {
+      const initBalInput = document.getElementById('initialBalance');
+      const earningsInput = document.getElementById('monthlyEarnings');
+      const budgetInput = document.getElementById('monthlyBudget');
+      if (initBalInput) initBalInput.value = data.initialBalance ?? '';
+      if (earningsInput) earningsInput.value = data.monthlyEarnings ?? '';
+      if (budgetInput) budgetInput.value = data.monthlySpending ?? '';
+    }
+  } catch (err) {
+    console.warn('Nessie data unavailable:', err);
+  }
+});
 
 window.__pennyTempSpeech = window.__pennyTempSpeech || '';
 
