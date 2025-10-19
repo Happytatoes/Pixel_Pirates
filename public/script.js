@@ -23,11 +23,6 @@ window.switchPage = function(pageId) {
     });
 };
 
-
-function savePetState(state) {
-    localStorage.setItem('pennyState', JSON.stringify(state));
-}
-
 // Load state on page load
 function loadPetState() {
     const saved = localStorage.getItem('pennyState');
@@ -212,7 +207,7 @@ async function handleSubmit() {
         
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Feed Penny 🍼';
+        submitBtn.textContent = 'Feed Penny';
     }
 }
 

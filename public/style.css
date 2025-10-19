@@ -61,7 +61,7 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(to right, #a6e3e9, #ffe5ec);
+    background: #f2d575;
     padding: 16px;
     display: flex;
     justify-content: space-between;
@@ -102,33 +102,7 @@ body {
 .pet-area.thriving { background: linear-gradient(to bottom right, #fddde6, #fbbde0); }
 .pet-area.legendary { background: linear-gradient(to bottom right, #fff1b8, #ffe38f, #ffdc6f); }
 
-/* Speech Bubble */
-.speech-bubble {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    right: 16px;
-    background: #ffffffcc;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 8px 12px -4px rgba(0, 0, 0, 0.08);
-}
 
-.speech-bubble p {
-    font-size: 14px;
-    color: #3d3d3d;
-    line-height: 1.5;
-}
-
-.bubble-tail {
-    position: absolute;
-    bottom: -8px;
-    left: 32px;
-    width: 16px;
-    height: 16px;
-    background: #ffffffcc;
-    transform: rotate(45deg);
-}
 
 /* Pet */
 .pet {
@@ -257,37 +231,40 @@ body {
 
 .input-group input {
     width: 100%;
-    padding: 8px 16px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
+    padding: 8px;
+    border: 2px solid #000; /* solid black pixel outline */
+    border-radius: 0;       /* sharp corners */
+    font-size: 12px;        /* smaller pixel-style text */
+    background: #fffef0;    /* light pastel background */
+    color: #000;
+    box-shadow: none;
 }
-
 .input-group input:focus {
-    outline: none;
-    border-color: #a8e6cf;
+    outline: 2px solid #ff6ec7; /* pink pixel-style focus */
+}
+.input-group input::placeholder {
+    color: #000;
+    opacity: 1; /* force visible */
 }
 
 .submit-btn {
-    width: 100%;
+    font-family: 'Press Start 2P', monospace;
+    background: #65d52d;
+    color: #000;
+    border: 2px solid #000;
+    border-radius: 0;
     padding: 12px;
-    background: linear-gradient(to right, #a8e6cf, #ffd6f0);
-    color: #3d3d3d;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    margin-top: 8px;
+   
+    display: block;
+    width: 220px;
+    margin: 16px auto 0;
+
 }
 
 .submit-btn:hover {
-    background: linear-gradient(to right, #dcedc1, #ffe4f0);
-    box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
+    background: #afdd99;
 }
 
 .submit-btn:disabled {
@@ -325,7 +302,7 @@ body {
 }
 
 .nav-btn.active {
-    color: #a8e6cf;
+    color: #1e5dee;
 }
 
 .nav-icon {
@@ -356,3 +333,37 @@ body {
         font-size: 16px;
     }
 }
+
+/* Speech Bubble */
+
+.speech-bubble p {
+    font-size: 14px;
+    color: #3d3d3d;
+    line-height: 1.5;
+}
+
+.speech-bubble {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    background: #fff8e0;  /* pastel pixel-y background */
+    border: 2px solid #000; /* solid black outline */
+    border-radius: 0;      /* blocky corners */
+    padding: 16px;
+    font-size: 10px;       /* pixel style font size */
+    line-height: 1.4;
+    color: #000;
+}
+
+.bubble-tail {
+    width: 16px;
+    height: 16px;
+    background: #fff8e0;
+    border: 2px solid #000;
+    transform: rotate(45deg);
+    position: absolute;
+    bottom: -8px;
+    left: 32px;
+}
+
