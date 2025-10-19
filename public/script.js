@@ -578,7 +578,7 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
               } catch {}
               // Do not update the speech bubble here; the temporary message should persist.
           }
-      }, 4000);
+      }, 3000);
   }
 
 }
