@@ -1,3 +1,4 @@
+
 /* ===== Speech Bubble controller (creates its own DOM) ===== */
 (function () {
   const CHAR_SELECTOR = '#pet';

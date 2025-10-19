@@ -1,3 +1,4 @@
+
 // server.js (CommonJS)
 // Deterministic metrics/state/health on server; Gemini only supplies headline + advice.
 // Uses v1beta + JSON mode + responseSchema. Returns:

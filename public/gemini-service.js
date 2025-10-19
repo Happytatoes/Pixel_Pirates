@@ -1,3 +1,4 @@
+
 // public/gemini-service.js
 // Works with normalized server responses or legacy raw candidates.
 // Adds (not erases) new advice to the bubble via window.pennyShowMessage().
