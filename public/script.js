@@ -1,6 +1,239 @@
 // script.js
 import { analyzeFinancialData } from './gemini-service.js';
 
+/*
+ * Persistent progress helpers
+ *
+ * We track the user's daily deposit and withdrawal activity to compute both an
+ * instantaneous mood change and a longer‑term monthly health score. Each day
+ * in this simplified simulation consists of one deposit and one withdrawal.
+ * If an action happens twice in a row (two deposits or two withdrawals) the
+ * missing counterpart is treated as zero for that day. After 30 days the
+ * counters reset. Progress is stored in localStorage so it survives page
+ * reloads.
+ */
+
+// Holds the most recent analysis returned from the Gemini server. We update
+// the health and state on this object after each day completes, but keep
+// the headline and advice untouched so the pet always returns to the same
+// narrative after a short reaction.
+let overallAnalysis = null;
+// For separating short-term reactions (temporary state) from long-term health
+// we track the last non-temporary analysis here. When updatePetDisplay is
+// called with isTemporary=false, we save the analysis into overallHealthState.
+let revertTimeout = null;
+let overallHealthState = null;
+
+function getProgress() {
+  return {
+    dayCount: parseInt(localStorage.getItem('dayCount')) || 0,
+    dailyDeposit: parseFloat(localStorage.getItem('dailyDeposit')) || 0,
+    dailyWithdraw: parseFloat(localStorage.getItem('dailyWithdraw')) || 0,
+    totalDeposits: parseFloat(localStorage.getItem('totalDeposits')) || 0,
+    totalWithdrawals: parseFloat(localStorage.getItem('totalWithdrawals')) || 0,
+    lastAction: localStorage.getItem('lastAction') || null
+  };
+}
+
+function saveProgress(p) {
+  localStorage.setItem('dayCount', p.dayCount);
+  localStorage.setItem('dailyDeposit', p.dailyDeposit);
+  localStorage.setItem('dailyWithdraw', p.dailyWithdraw);
+  localStorage.setItem('totalDeposits', p.totalDeposits);
+  localStorage.setItem('totalWithdrawals', p.totalWithdrawals);
+  // persist lastAction as empty string when null to avoid string 'null'
+  localStorage.setItem('lastAction', p.lastAction || '');
+}
+
+function resetProgress() {
+  const p = {
+    dayCount: 0,
+    dailyDeposit: 0,
+    dailyWithdraw: 0,
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    lastAction: null
+  };
+  saveProgress(p);
+}
+
+// Converts a numeric health score (0–100) into a game state name. These
+// thresholds mirror those used on the backend. Keep in sync with
+// gemini-service.js.
+function stateFromHealth(h) {
+  const n = Number(h);
+  if (!Number.isFinite(n)) return 'SURVIVING';
+  if (n < 15) return 'FLATLINED';
+  if (n < 30) return 'CRITICAL';
+  if (n < 45) return 'STRUGGLING';
+  if (n < 60) return 'SURVIVING';
+  if (n < 75) return 'HEALTHY';
+  if (n < 90) return 'THRIVING';
+  return 'LEGENDARY';
+}
+
+// Computes a revised overall health score based on current balance, how much
+// has been deposited versus withdrawn over the month so far, and how those
+// numbers compare to the user's budget. The returned value is bounded
+// between 0 and 100. See README for details.
+function computeOverallHealth() {
+  /*
+   * The overall health score reflects both long‑term wealth accumulation and
+   * day‑to‑day budgeting habits. We start from 50 and adjust the score
+   * using several factors:
+   *   1) How much your current balance has grown or shrunk compared to
+   *      your initial balance. Large gains boost the score; large losses
+   *      lower it. This encourages building wealth over time.
+   *   2) The momentum of your deposits versus withdrawals over the entire
+   *      cycle. A net surplus adds a small bonus, while a net deficit
+   *      subtracts a small amount. This rewards consistent saving.
+   *   3) Your average net change per day relative to your earning/spending
+   *      ability. Saving more than your daily budget or earnings nudges
+   *      the score up, while spending more nudges it down.
+   *   4) Your projected monthly spending relative to your budget. Staying
+   *      under budget adds a few points; overspending takes points away.
+   */
+  const { initialBalance, monthlyBudget, monthlyEarnings } = getFinancialData();
+  const progress = getProgress();
+  const currentBal = getCurrentBalance();
+
+  // Use a small baseline to avoid divide‑by‑zero if initial balance is zero.
+  const initBal = initialBalance || 1;
+
+  // Begin from neutral midpoint.
+  let score = 50;
+
+  // 1) Balance change ratio: compute how much your current balance has
+  //    increased or decreased relative to your starting balance. We weight
+  //    this heavily because growing your nest egg is the most important
+  //    indicator of long‑term financial health. A 100% gain adds 40 points;
+  //    a 100% loss subtracts 40 points. Anything beyond ±100% is capped.
+  const balRatio = (currentBal - initialBalance) / initBal;
+  score += Math.max(-40, Math.min(40, balRatio * 50));
+
+  // 2) Momentum of deposits vs withdrawals: look at the cumulative net
+  //    deposits relative to your starting balance. This is a smaller factor
+  //    because large deposits/withdrawals already show up in the balance.
+  let netTotalRatio = (progress.totalDeposits - progress.totalWithdrawals) / initBal;
+  netTotalRatio = Math.max(-1, Math.min(1, netTotalRatio));
+  score += netTotalRatio * 10; // ±10
+
+  // 3) Average daily net change compared to your earning/spending power.
+  //    This rewards regular saving (net positive) and discourages net
+  //    withdrawals. We compare the average net change to either your daily
+  //    budget (if known) or your daily income. The effect is capped to
+  //    ±10 points.
+  const days = progress.dayCount || 1;
+  const avgNet = (progress.totalDeposits - progress.totalWithdrawals) / days;
+  let dailyRatio = 0;
+  if (monthlyBudget > 0) {
+    const dailyBudget = monthlyBudget / 30;
+    dailyRatio = avgNet / dailyBudget;
+  } else if (monthlyEarnings > 0) {
+    const dailyEarnings = monthlyEarnings / 30;
+    dailyRatio = avgNet / dailyEarnings;
+  }
+  // Clamp dailyRatio so extreme values don't dominate
+  dailyRatio = Math.max(-1, Math.min(1, dailyRatio));
+  score += dailyRatio * 10;
+
+  // 4) Projected monthly spending relative to budget. We estimate your
+  //    monthly spending based on your average daily withdrawals minus
+  //    deposits. Underspending relative to budget adds up to 10 points;
+  //    overspending subtracts up to 20 points. This keeps budgets in mind
+  //    without overwhelming the impact of actual savings.
+  if (monthlyBudget > 0) {
+    const monthlyExpectedSpending = (progress.totalWithdrawals - progress.totalDeposits) / days * 30;
+    const spendingRatio = monthlyExpectedSpending / monthlyBudget;
+    if (spendingRatio > 1) {
+      // For every 10% over budget, subtract 2 points, up to -20
+      score -= Math.min(20, (spendingRatio - 1) * 20);
+    } else {
+      // For being under budget, add up to 10 points depending on how much is saved
+      score += Math.min(10, (1 - spendingRatio) * 10);
+    }
+  }
+
+  return clamp0to100(score);
+}
+
+// When a deposit is made, update the progress tracker. Depending on the
+// previous action this may finalize a day (assigning missing values as 0) or
+// start a new day. See README for the day definition rules.
+function handleDepositProgress(amount) {
+  const p = getProgress();
+  if (p.lastAction === 'deposit') {
+    // two deposits in a row: finalize previous day with withdraw=0
+    finalizeDay(p.dailyDeposit, 0);
+    // start new day with this deposit
+    p.dailyDeposit = amount;
+    p.dailyWithdraw = 0;
+    p.lastAction = 'deposit';
+  } else if (p.lastAction === 'withdraw') {
+    // deposit completes a day after a withdrawal; deposit and previous withdraw
+    finalizeDay(amount, p.dailyWithdraw);
+    // no ongoing day
+    p.dailyDeposit = 0;
+    p.dailyWithdraw = 0;
+    p.lastAction = null;
+  } else {
+    // first action of the day is a deposit
+    p.dailyDeposit = amount;
+    p.dailyWithdraw = 0;
+    p.lastAction = 'deposit';
+  }
+  saveProgress(p);
+}
+
+// When a withdrawal is made, update the progress tracker. Depending on the
+// previous action this may finalize a day or start a new day. See README.
+function handleWithdrawProgress(amount) {
+  const p = getProgress();
+  if (p.lastAction === 'withdraw') {
+    // two withdrawals in a row: finalize previous day with deposit=0
+    finalizeDay(0, p.dailyWithdraw);
+    // start new day with this withdrawal
+    p.dailyDeposit = 0;
+    p.dailyWithdraw = amount;
+    p.lastAction = 'withdraw';
+  } else if (p.lastAction === 'deposit') {
+    // withdrawal completes a day after a deposit; deposit and this withdrawal
+    finalizeDay(p.dailyDeposit, amount);
+    p.dailyDeposit = 0;
+    p.dailyWithdraw = 0;
+    p.lastAction = null;
+  } else {
+    // first action of the day is a withdrawal
+    p.dailyDeposit = 0;
+    p.dailyWithdraw = amount;
+    p.lastAction = 'withdraw';
+  }
+  saveProgress(p);
+}
+
+// Finalize a day by adding the deposit and withdrawal amounts to the monthly
+// totals and incrementing the day counter. If 30 days have passed, reset
+// the totals for a fresh monthly cycle. This does not persist the daily
+// deposit/withdraw—those should be cleared by the caller.
+function finalizeDay(depositAmt, withdrawAmt) {
+  const p = getProgress();
+  p.totalDeposits += depositAmt;
+  p.totalWithdrawals += withdrawAmt;
+  p.dayCount += 1;
+  if (p.dayCount >= 30) {
+    p.dayCount = 0;
+    p.totalDeposits = 0;
+    p.totalWithdrawals = 0;
+  }
+  // after finalizing a day, recompute overall health and update
+  if (overallAnalysis) {
+    const newHealth = computeOverallHealth();
+    overallAnalysis.health = newHealth;
+    overallAnalysis.state = stateFromHealth(newHealth);
+  }
+  saveProgress(p);
+}
+
 
 /* ----------------------------- Navigation ----------------------------- */
 window.switchPage = function(pageId) {
@@ -171,7 +404,7 @@ function clamp0to100(x) {
 
 
 /* -------------------------- Update Pet Display -------------------------- */
-function updatePetDisplay(analysis) {
+function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary = false) {
   const petArea     = document.getElementById('petArea');
   const pet         = document.getElementById('pet');
   const stateName   = document.getElementById('stateName');
@@ -210,9 +443,12 @@ function updatePetDisplay(analysis) {
 
   if (stateName) stateName.textContent = current.name;
 
-  // Health bar (show when health is a number)
+  // When updating the pet, decide whether to change the health bar.
+  // For temporary reactions (isTemporary=true), we do not update the health bar.
   const health = clamp0to100(analysis?.health);
-  if (typeof analysis?.health === 'number') {
+  // Update the health bar when either this is a permanent update (isTemporary is false)
+  // or when explicitly requested for a temporary reaction via updateBarWhenTemporary.
+  if ((updateBarWhenTemporary || !isTemporary) && typeof analysis?.health === 'number') {
     if (stats) stats.style.display = 'flex';
     if (healthBar) {
       healthBar.style.width = health + '%';
@@ -223,13 +459,40 @@ function updatePetDisplay(analysis) {
       else                   healthBar.setAttribute('data-health', 'excellent');
     }
     if (healthValue) healthValue.textContent = health + '%';
-  } else {
-    if (stats) stats.style.display = 'none';
   }
+  // When temporary and not updating the bar, keep the existing health bar state; no need to hide stats or update
 
   // Message (headline+bullets already composed by gemini-service finalizeForUI)
   const safeMsg = String(analysis?.message || '').trim();
   if (safeMsg && petMessage) petMessage.textContent = safeMsg;
+
+  // For permanent updates, remember this state so we can revert to it later.
+  if (!isTemporary) {
+    overallHealthState = analysis;
+    overallAnalysis = analysis;
+  }
+
+  // If this is a temporary reaction, schedule a revert back to the long‑term state
+  // after a short delay. This preserves the long-term health bar while showing
+  // an immediate state change. The revert uses the stored overallHealthState and
+  // does not modify the health bar unless the revert call requests it.
+  if (isTemporary && overallHealthState) {
+    clearTimeout(revertTimeout);
+    revertTimeout = setTimeout(() => {
+      // Revert to the saved overall state
+      if (overallHealthState) {
+        updatePetDisplay(overallHealthState, false);
+        // Persist the overall state
+        try {
+          savePetState(overallHealthState);
+        } catch {}
+        // Restore the long-term message in the speech bubble overlay
+        try {
+          if (window.pennyShowMessage) window.pennyShowMessage(overallHealthState.message);
+        } catch {}
+      }
+    }, 3000);
+  }
 }
 
 /* --------------------------- Submit handler (NEW) --------------------------- */
@@ -290,40 +553,6 @@ document.addEventListener('DOMContentLoaded', () => { loadPetState(); });
 document.getElementById('depositBtn').addEventListener('click', handleDeposit);
 document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
 
-// Enter to submit
-   const petArea = document.getElementById('petArea');
-   const pet = document.getElementById('pet');
-   const stateName = document.getElementById('stateName');
-   const petMessage = document.getElementById('petMessage');
-   const stats = document.getElementById('stats');
-   const healthBar = document.getElementById('healthBar');
-   const healthValue = document.getElementById('healthValue');
-
-
-   const stateKey = toAllowedState(analysis?.state);
-   const current = PET_STATES[stateKey];
-
-
-   if (petArea) petArea.className = 'pet-area ' + current.className;
-   if (pet) {
-       pet.textContent = current.emoji;
-       pet.className = 'pet ' + current.animation;
-   }
-   if (stateName) stateName.textContent = current.name;
-
-
-   const health = clamp0to100(analysis?.health);
-   if (typeof analysis?.health === 'number') {
-       if (stats) stats.style.display = 'flex';
-       if (healthBar) healthBar.style.width = health + '%';
-       if (healthValue) healthValue.textContent = health + '%';
-   } else {
-       if (stats) stats.style.display = 'none';
-   }
-
-
-   const safeMsg = String(analysis?.message || '').trim();
-   if (safeMsg && petMessage) petMessage.textContent = safeMsg;
 
 
 
@@ -376,17 +605,25 @@ async function handleFeedPenny() {
            investmentBalance: '0'
        };
 
-
+       // Ask the backend/Gemini for an analysis of the high‑level finances.
        const analysis = await analyzeFinancialData(formData);
-      
+
+       // Persist the analysis so that deposit/withdrawal reactions can revert
+       // back to these values after a short time.
+       overallAnalysis = analysis;
+
+       // Reset monthly progress since a new financial snapshot has been provided
+       resetProgress();
+
+       // Update the pet display and save state
        updatePetDisplay(analysis);
        savePetState(analysis);
        window.switchPage('petView');
 
-
-       const nextMsg = (analysis && typeof analysis.message === 'string' && analysis.message.trim()) || 'Analysis complete!';
+       const nextMsg =
+         (analysis && typeof analysis.message === 'string' && analysis.message.trim()) ||
+         'Analysis complete!';
        if (petMsgEl) petMsgEl.textContent = nextMsg;
-
 
    } catch (error) {
        console.error('Feed Penny failed:', error);
@@ -416,20 +653,96 @@ async function handleDeposit() {
    const newBalance = getCurrentBalance() + amount;
    setCurrentBalance(newBalance);
 
+   // Determine the user's financial context
+   const { monthlyBudget, monthlyEarnings } = getFinancialData();
+   const dailyBudget = monthlyBudget > 0 ? monthlyBudget / 30 : 0;
+   const currentBal = getCurrentBalance();
 
-   // Show positive reaction
+   // Recompute the overall health after this deposit so the long‑term health bar
+   // reflects your updated financial status. Update (or create) the global
+   // analysis object and refresh the pet display. If no prior analysis exists
+   // (for example, if the user hasn't fed Penny yet), synthesize a minimal
+   // analysis object so the bar can still update.
+   const newOverallHealth = computeOverallHealth();
+   const newState = stateFromHealth(newOverallHealth);
+   if (!overallAnalysis) {
+     overallAnalysis = {
+       state: newState,
+       health: newOverallHealth,
+       headline: '',
+       advice: [],
+       message: ''
+     };
+   } else {
+     overallAnalysis.health = newOverallHealth;
+     overallAnalysis.state  = newState;
+   }
+   // Update the display and persist the new long‑term state. This ensures
+   // the health bar always reflects the overall portfolio after each
+   // transaction.
+   updatePetDisplay(overallAnalysis, false);
+   savePetState(overallAnalysis);
+
+   // Compute an effective ratio for the instant mood. We consider how
+   // meaningful the deposit is relative to your current balance, your daily
+   // spending budget, and your monthly earnings. To emphasize the impact
+   // relative to the monthly budget, we give the daily budget ratio twice
+   // the weight of the other ratios. The resulting weighted average is
+   // clamped between 0 and 1 so extreme values do not overwhelm the mood.
+   let totalRatio = 0;
+   let weightSum  = 0;
+   if (currentBal > 0) {
+     totalRatio += (amount / currentBal) * 1;
+     weightSum  += 1;
+   }
+   if (dailyBudget > 0) {
+     totalRatio += (amount / dailyBudget) * 2; // double weight for budget
+     weightSum  += 2;
+   }
+   if (monthlyEarnings > 0) {
+     totalRatio += (amount / monthlyEarnings) * 1;
+     weightSum  += 1;
+   }
+   let effectiveRatio = 0;
+   if (weightSum > 0) {
+     effectiveRatio = totalRatio / weightSum;
+     // Cap between 0 and 1
+     effectiveRatio = Math.max(0, Math.min(1, effectiveRatio));
+   }
+
+   // Determine the reaction state based on the size of the deposit.
+   let reactionState;
+   if (effectiveRatio >= 0.75) reactionState = 'LEGENDARY';
+   else if (effectiveRatio >= 0.5) reactionState = 'THRIVING';
+   else if (effectiveRatio >= 0.25) reactionState = 'HEALTHY';
+   else reactionState = 'SURVIVING';
+
+   // Use the base overall health for the health value during the reaction
+   const baseHealth = newOverallHealth;
+
+   // Construct a message for the reaction
+   const msg = dailyBudget > 0
+     ? `You deposited $${amount.toFixed(2)} which is ${(amount / dailyBudget * 100).toFixed(0)}% of your daily budget. Great job!`
+     : `You deposited $${amount.toFixed(2)}! Way to grow your savings.`;
+
    const petReaction = {
-       state: 'THRIVING',
-       health: 85,
-       message: `Yay! You deposited $${amount.toFixed(2)}! Your balance is now $${newBalance.toFixed(2)}. Keep it up!`
+     state: reactionState,
+     health: baseHealth,
+     message: msg
    };
 
+   // Update progress tracker (handles day finalization rules)
+   handleDepositProgress(amount);
 
-   updatePetDisplay(petReaction);
-   savePetState(petReaction);
+   // Show the instantaneous reaction. Do not change the health bar during
+   // the temporary mood; the bar already reflects the new overall health.
+   updatePetDisplay(petReaction, true);
+   // Show message in the speech bubble overlay (if available)
+   try {
+     if (window.pennyShowMessage) window.pennyShowMessage(msg);
+   } catch {}
 
-
-   // Clear input and switch to pet view
+   // Clear input and switch to pet view so the user sees the reaction
    depositInput.value = '';
    window.switchPage('petView');
 }
@@ -460,41 +773,92 @@ async function handleWithdraw() {
    const newBalance = currentBalance - amount;
    setCurrentBalance(newBalance);
 
+   // Determine the user's financial context
+   const { monthlyBudget, monthlyEarnings } = getFinancialData();
+   const dailyBudget = monthlyBudget > 0 ? monthlyBudget / 30 : 0;
+   const currentBal = getCurrentBalance();
 
-   // Show reaction based on withdrawal size
-   const percentWithdrawn = (amount / currentBalance) * 100;
-   let petReaction;
-
-
-   if (percentWithdrawn > 50) {
-       // Large withdrawal - worried
-       petReaction = {
-           state: 'STRUGGLING',
-           health: 40,
-           message: `Whoa! You withdrew $${amount.toFixed(2)} (${percentWithdrawn.toFixed(0)}% of your balance). Be careful! Balance: $${newBalance.toFixed(2)}`
-       };
-   } else if (percentWithdrawn > 25) {
-       // Medium withdrawal - cautious
-       petReaction = {
-           state: 'SURVIVING',
-           health: 60,
-           message: `You withdrew $${amount.toFixed(2)}. That's a decent chunk. Balance now: $${newBalance.toFixed(2)}`
-       };
+   // Recompute the overall health after this withdrawal so the long‑term
+   // health bar reflects your updated financial situation. Update (or
+   // create) the global analysis object and refresh the display. This
+   // ensures the bar moves immediately after a withdrawal. If there's no
+   // prior analysis (e.g. the user hasn't fed Penny), create a minimal
+   // object to hold the state.
+   const newOverallHealth = computeOverallHealth();
+   const newState = stateFromHealth(newOverallHealth);
+   if (!overallAnalysis) {
+     overallAnalysis = {
+       state: newState,
+       health: newOverallHealth,
+       headline: '',
+       advice: [],
+       message: ''
+     };
    } else {
-       // Small withdrawal - ok
-       petReaction = {
-           state: 'HEALTHY',
-           health: 75,
-           message: `You withdrew $${amount.toFixed(2)}. Small withdrawal, all good! Balance: $${newBalance.toFixed(2)}`
-       };
+     overallAnalysis.health = newOverallHealth;
+     overallAnalysis.state  = newState;
+   }
+   updatePetDisplay(overallAnalysis, false);
+   savePetState(overallAnalysis);
+
+   // Compute an effective ratio reflecting how significant this withdrawal is
+   // relative to your current balance, your daily budget, and your monthly
+   // earnings. To emphasize the effect of the monthly budget, we weight the
+   // daily budget ratio twice as much as the others. The weighted average
+   // is clamped between 0 and 1. Larger ratios produce stronger negative moods.
+   let totalRatio = 0;
+   let weightSum  = 0;
+   if (currentBal > 0) {
+     totalRatio += (amount / currentBal) * 1;
+     weightSum  += 1;
+   }
+   if (dailyBudget > 0) {
+     totalRatio += (amount / dailyBudget) * 2; // double weight for budget
+     weightSum  += 2;
+   }
+   if (monthlyEarnings > 0) {
+     totalRatio += (amount / monthlyEarnings) * 1;
+     weightSum  += 1;
+   }
+   let effectiveRatio = 0;
+   if (weightSum > 0) {
+     effectiveRatio = totalRatio / weightSum;
+     effectiveRatio = Math.max(0, Math.min(1, effectiveRatio));
    }
 
+   // Determine the reaction state based on the size of the withdrawal. More
+   // severe withdrawals lead to worse moods. A mild withdrawal keeps the
+   // pet 'SURVIVING', while extreme withdrawals can 'FLATLINE' the pet.
+   let reactionState;
+   if (effectiveRatio >= 0.75) reactionState = 'FLATLINED';
+   else if (effectiveRatio >= 0.5) reactionState = 'CRITICAL';
+   else if (effectiveRatio >= 0.25) reactionState = 'STRUGGLING';
+   else reactionState = 'SURVIVING';
 
-   updatePetDisplay(petReaction);
-   savePetState(petReaction);
+   // Use the base overall health for the health value during the reaction
+   const baseHealth = newOverallHealth;
 
+   // Construct a message for the reaction
+   const msg = dailyBudget > 0
+     ? `You withdrew $${amount.toFixed(2)} which is ${(amount / dailyBudget * 100).toFixed(0)}% of your daily budget. Try to stay within your plan!`
+     : `You withdrew $${amount.toFixed(2)}. Keep an eye on your spending!`;
+   const petReaction = {
+     state: reactionState,
+     health: baseHealth,
+     message: msg
+   };
 
-   // Clear input and switch to pet view
+   // Update progress tracker (handles day finalization rules)
+   handleWithdrawProgress(amount);
+
+   // Show the instantaneous reaction. Do not update the health bar during
+   // the temporary mood; the bar already reflects the new overall health.
+   updatePetDisplay(petReaction, true);
+   try {
+     if (window.pennyShowMessage) window.pennyShowMessage(msg);
+   } catch {}
+
+   // Clear input and switch to pet view so the user sees the reaction
    withdrawInput.value = '';
    window.switchPage('petView');
 }
