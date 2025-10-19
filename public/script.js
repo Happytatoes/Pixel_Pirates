@@ -137,10 +137,26 @@ function updatePetDisplay(analysis) {
   if (stateName) stateName.textContent = current.name;
 
   // Health bar (show when health is a number)
+  /*Changed to color-code health bar based on level*/
   const health = clamp0to100(analysis?.health);
   if (typeof analysis?.health === 'number') {
     if (stats) stats.style.display = 'flex';
-    if (healthBar)  healthBar.style.width = health + '%';
+    if (healthBar) {
+      healthBar.style.width = health + '%';
+      
+      // Set color based on health level
+      if (health <= 20) {
+        healthBar.setAttribute('data-health', 'critical');
+      } else if (health <= 40) {
+        healthBar.setAttribute('data-health', 'low');
+      } else if (health <= 60) {
+        healthBar.setAttribute('data-health', 'medium');
+      } else if (health <= 80) {
+        healthBar.setAttribute('data-health', 'good');
+      } else {
+        healthBar.setAttribute('data-health', 'excellent');
+      }
+    }
     if (healthValue) healthValue.textContent = health + '%';
   } else {
     // Hide if not present

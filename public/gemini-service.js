@@ -93,7 +93,7 @@ Return EXACTLY this shape:
 }
 
 What to write:
-- headline = one friendly sentence that explains how the pet is doing in the game
+- headline = one cute sentence that explains how the pet is doing in the game
 - advice[0] = one positive sentence with a number that says what is going well
 - advice[1] = one helpful change with a number that makes the pet stronger
 - advice[2] = one simple goal for next week with a number that is easy to try
@@ -235,7 +235,7 @@ function finalizeForUI(obj){
   // Base: prefer new headline; otherwise keep previous unless it was the analyzing line
   const baseRaw = headline || (isAnalyzing ? '' : currentText);
   const base = sanitizeLine(shorten(baseRaw, 140));
-  const bullets = advice.length ? advice.map(b => `• ${b}`).join('\n') : '';
+  const bullets = advice.length ? advice.map(b => `${b}`).join('\n') : '';
   const message = bullets ? (base ? `${base}\n${bullets}` : bullets) : (base || '');
 
   return {
