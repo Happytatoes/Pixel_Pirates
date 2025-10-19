@@ -367,3 +367,5 @@ body {
     left: 32px;
 }
 
+/* in style.css */
+#petArea { position: relative; }
