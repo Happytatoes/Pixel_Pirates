@@ -492,6 +492,7 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
     // Choose the animation by direction: up = good (bounce), down = negative (pulse)
     const animClass = (analysis && analysis.direction === 'down') ? 'pulse' : 'bounce';
 
+
     // Retrigger by toggling (ensure animation restarts)
     void pet.offsetWidth;
     pet.classList.add(animClass);
@@ -533,6 +534,10 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
   const safeMsg = String(analysis?.message || '').trim();
   if (safeMsg && petMessage) petMessage.textContent = safeMsg;
 
+  if (isTemporary && analysis && analysis.direction) {
+    showArrows(analysis.direction);
+  }
+
   // For permanent updates, remember this state so we can revert to it later.
   if (!isTemporary) {
     overallHealthState = analysis;
@@ -561,6 +566,27 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
     }, 3000);
   }
 }
+
+function showArrows(direction) {
+  const petEl = document.getElementById('pet');
+  if (!petEl) return;
+
+  petEl.querySelectorAll('.arrow-container').forEach(el => el.remove());
+
+  if (getComputedStyle(petEl).position === 'static') petEl.style.position = 'relative';
+  const container = document.createElement('div');
+  container.className = 'arrow-container';
+
+  for (let i = 0; i < 3; i++) {
+    const arrow = document.createElement('div');
+    arrow.className = (direction === 'down') ? 'arrow-down' : 'arrow-up';
+    container.appendChild(arrow);
+  }
+
+  petEl.appendChild(container);
+  setTimeout(() => { try { container.remove(); } catch {} }, 1200);
+}
+
 
 /* --------------------------- Submit handler (NEW) --------------------------- */
 async function handleSubmit() {
@@ -614,12 +640,6 @@ async function handleSubmit() {
   }
 }
 
-// Event Listeners
-document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenny);
-document.addEventListener('DOMContentLoaded', () => { loadPetState(); });
-document.getElementById('depositBtn').addEventListener('click', handleDeposit);
-document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
-document.getElementById('resetBtn').addEventListener('click', handleReset);
 
 
 

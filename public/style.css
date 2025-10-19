@@ -101,7 +101,7 @@ body {
 .pet.bounce { animation: bounce 1s infinite; }
 .pet.pulse  { animation: pulse 2s infinite;}
 @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
-@keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:.5} }b
+@keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:.5} }
 
 .pet img.pet-img {
   width: 180px; height: 180px;
