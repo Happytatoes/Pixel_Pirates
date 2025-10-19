@@ -829,19 +829,46 @@ async function handleDeposit() {
    // Use the base overall health for the health value during the reaction
    const baseHealth = newOverallHealth;
 
-   // Construct a message for the reaction
-   const msg = dailyBudget > 0
-     ? `You deposited $${amount.toFixed(2)} which is ${(amount / dailyBudget * 100).toFixed(0)}% of your daily budget. Great job!`
-     : `You deposited $${amount.toFixed(2)}! Way to grow your savings.`;
+   // Construct the base message
+    const msgBase = dailyBudget > 0
+      ? `You deposited $${amount.toFixed(2)} which is ${(amount / dailyBudget * 100).toFixed(0)}% of your daily budget. Great job!`
+      : `You deposited $${amount.toFixed(2)}! Way to grow your savings.`;
 
-   const petReaction = {
-     state: reactionState,
-     health: baseHealth,
-     message: msg,
-    direction: 'up'
+    // Derive a summary based on the new overall health
+    let healthSummary;
+    if (baseHealth >= 75) {
+      healthSummary = 'Your overall bank health is strong.';
+    } else if (baseHealth >= 60) {
+      healthSummary = 'Your bank health is okay.';
+    } else if (baseHealth >= 40) {
+      healthSummary = 'Your bank health could be better.';
+    } else {
+      healthSummary = 'Your bank health is poor and needs attention.';
+    }
 
+    let aiTail = '';
+    try {
+      const fd = getFinancialData();
+      const ai = await analyzeFinancialData({
+        income: fd.monthlyEarnings,
+        spending: fd.monthlyBudget,
+        savings: fd.initialBalance,
+        debt: 0,
+        currentBalance: getCurrentBalance(),
+        transactionAmount: amount
+      });
+      aiTail = (Array.isArray(ai?.advice) && ai.advice[2]) ? ai.advice[2] : (ai?.headline || '');
+    } catch {}
 
-   };
+    const msg = `${msgBase} ${aiTail}`.trim();
+
+    const petReaction = {
+      state: reactionState,
+      health: baseHealth,
+      message: msg,
+      direction: 'up'
+    };
+
 
    // Update progress tracker (handles day finalization rules)
    handleDepositProgress(amount);
@@ -951,17 +978,46 @@ async function handleWithdraw() {
    // Use the base overall health for the health value during the reaction
    const baseHealth = newOverallHealth;
 
-   // Construct a message for the reaction
-   const msg = dailyBudget > 0
-     ? `You withdrew $${amount.toFixed(2)} which is ${(amount / dailyBudget * 100).toFixed(0)}% of your daily budget. Try to stay within your plan!`
-     : `You withdrew $${amount.toFixed(2)}. Keep an eye on your spending!`;
-   const petReaction = {
-     state: reactionState,
-     health: baseHealth,
-     message: msg,
-    direction: 'down'
+   // Construct the base message
+  const msgBase = dailyBudget > 0
+    ? `You withdrew $${amount.toFixed(2)} which is ${(amount / dailyBudget * 100).toFixed(0)}% of your daily budget. Try to stay within your plan!`
+    : `You withdrew $${amount.toFixed(2)}. Keep an eye on your spending!`;
 
-   };
+  // Derive a summary based on the new overall health
+  let healthSummary;
+  if (baseHealth >= 75) {
+    healthSummary = 'Your overall bank health is strong.';
+  } else if (baseHealth >= 60) {
+    healthSummary = 'Your bank health is okay.';
+  } else if (baseHealth >= 40) {
+    healthSummary = 'Your bank health could be better.';
+  } else {
+    healthSummary = 'Your bank health is poor and needs attention.';
+  }
+
+  let aiTail = '';
+  try {
+    const fd = getFinancialData();
+    const ai = await analyzeFinancialData({
+      income: fd.monthlyEarnings,
+      spending: fd.monthlyBudget,
+      savings: fd.initialBalance,
+      debt: 0,
+      currentBalance: getCurrentBalance(),
+      transactionAmount: amount
+    });
+    aiTail = (Array.isArray(ai?.advice) && ai.advice[2]) ? ai.advice[2] : (ai?.headline || '');
+  } catch {}
+
+  const msg = `${msgBase} ${aiTail}`.trim();
+
+  const petReaction = {
+    state: reactionState,
+    health: baseHealth,
+    message: msg,
+    direction: 'down'
+  };
+
 
    // Update progress tracker (handles day finalization rules)
    handleWithdrawProgress(amount);
