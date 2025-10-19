@@ -74,6 +74,7 @@ body {
 
 /* Speech Bubble */
 .speech-bubble {
+    white-space: pre-line;
     position: absolute;
     top: 16px;
     left: 16px;
