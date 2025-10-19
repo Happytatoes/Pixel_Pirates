@@ -3,6 +3,7 @@
 // Adds (not erases) new advice to the bubble.
 // Sends structured numeric inputs so the server can compute deterministically.
 // Adds a timeout so the UI never hangs waiting for a response.
+// Style enforcement: no emojis, no parentheses, no colons; full sentences in plain English.
 
 const TIMEOUT_MS = 15000; // hard stop so UI never hangs
 
@@ -11,7 +12,12 @@ export async function analyzeFinancialData(data) {
     const prompt = buildFinancialPrompt(data);     // legacy servers
     const inputs = prepareInputs(data);            // deterministic server
 
-    const { ok, json } = await postJson('/analyze', { prompt, inputs, client: 'web-1.3' }, TIMEOUT_MS);
+    const { ok, json } = await postJson(
+      '/analyze',
+      { prompt, inputs, client: 'web-1.5' },
+      TIMEOUT_MS
+    );
+
     if (!ok) {
       const msg = stringifyErr(json) || 'Server error';
       throw new Error(msg);
@@ -26,7 +32,7 @@ export async function analyzeFinancialData(data) {
     const parsed = parseGeminiCandidates(json);
     if (parsed) return finalizeForUI(parsed);
 
-    // Path C: local fallback (avoid SURVIVING/50 when server gives nothing)
+    // Path C: local fallback
     const local = computeLocalFallback(inputs);
     return finalizeForUI(local);
 
@@ -57,52 +63,36 @@ async function postJson(url, body, timeoutMs) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Prompt for legacy servers (emojis allowed in strings)                      */
+/* Prompt for legacy servers — plain full sentences, no emoji/()/:            */
 /* -------------------------------------------------------------------------- */
 
 function buildFinancialPrompt(data) {
   return `
-You are Penny, a friendly but expert financial coach. Analyze the user's finances and be concise but specific.
+You are Penny, a kind money helper. Explain like you are talking to a ten year old.
 
-FIRST, compute these metrics (exact math, show 1 decimal if needed):
-- budget_ratio = monthly_spending / monthly_income
-- runway_months = total_savings / max(monthly_spending, 1)
-- invest_rate = monthly_investments / monthly_income
-- dti = total_debt / max(monthly_income, 1)
+Style rules:
+- No emojis
+- No parentheses
+- No colons
+- Use short full sentences in plain English
+- Do not use hard words like DTI, ratio, runway, leverage, liquidity, cash flow
+- Use simple phrases like: money you bring in each month, money you spend each month, savings you already have, money you owe, money you invest each month, investment account total
+- Write numbers clearly with words like percent, months, dollars
+- Each sentence should include one clear number
 
-THEN, choose a pet STATE by these rules (choose the most severe that applies):
-- FLATLINED: income <= 0, OR budget_ratio >= 1.50, OR runway_months < 0.5
-- CRITICAL: budget_ratio > 1.10, OR runway_months < 1.0, OR dti > 1.20
-- STRUGGLING: 0.90 < budget_ratio <= 1.10, OR 1.0 <= runway_months < 2.0, OR 0.60 < dti <= 1.20
-- SURVIVING: 0.80 < budget_ratio <= 0.90, OR 2.0 <= runway_months < 3.0, OR 0.05 <= invest_rate < 0.10
-- HEALTHY: budget_ratio <= 0.80 AND 3.0 <= runway_months <= 6.0 AND invest_rate >= 0.10 AND dti <= 0.60
-- THRIVING: budget_ratio <= 0.70 AND 6.0 < runway_months <= 12.0 AND invest_rate >= 0.12 AND dti <= 0.40
-- LEGENDARY: budget_ratio <= 0.60 AND runway_months > 12.0 AND invest_rate >= 0.15 AND dti <= 0.20
-
-Compute HEALTH (0–100) as:
-- Start at 50.
-- Budget: +15 if <=0.80; +5 if 0.80–0.90; -10 if 0.90–1.10; -25 if >1.10; -15 extra if >=1.50.
-- Runway: +20 if >=6; +10 if 3–6; +5 if 2–3; -10 if 1–2; -25 if <1; -10 extra if <0.5.
-- Investing: +10 if >=0.12; +5 if 0.10–0.12; +2 if 0.05–0.10.
-- Debt: +10 if <=0.40; +5 if 0.40–0.60; -10 if 0.60–1.20; -20 if >1.20.
-- Clamp final health to [0,100].
-
-Return:
-- headline: one friendly one-liner (≤90 chars, emojis welcome).
-- advice: EXACTLY 3 bullets with clear labels:
-  1) "Good: ..." (one concrete strength + number),
-  2) "Fix: ..." (highest-impact fix + number),
-  3) "Goal (next week): ..." (one actionable step + number).
-Avoid generic tips.
-
-RESPOND WITH JSON ONLY. NO code fences. EXACT shape:
-
+Return JSON ONLY in this exact shape (no extra keys, no code fences):
 {
   "state": "FLATLINED|CRITICAL|STRUGGLING|SURVIVING|HEALTHY|THRIVING|LEGENDARY",
   "health": 0,
   "headline": "string",
   "advice": ["string","string","string"]
 }
+
+What to write:
+- headline = one friendly sentence that sums up how they are doing
+- advice[0] = one positive sentence about a clear strength with a number
+- advice[1] = one helpful fix with a number
+- advice[2] = one simple goal for next week with a number
 
 User data:
 - monthly_income: ${numOrZero(data.income)}
@@ -113,6 +103,7 @@ User data:
 - investment_balance: ${numOrZero(data.investmentBalance)}
 `.trim();
 }
+
 
 /* --------------------------------- Helpers -------------------------------- */
 
@@ -147,25 +138,72 @@ function looksNormalized(obj){
   );
 }
 
+/* ----------------------------- Text sanitizing ----------------------------- */
+// Remove emojis, parentheses, and colons; expand '%' to ' percent', 'mo' to 'months'.
+// Keep periods and ensure full sentences end with a period.
+function sanitizeLine(s) {
+  let t = String(s || '');
+
+  // Remove emoji-like ranges (misc symbols + SMP pictographs)
+  t = t.replace(/[\u2600-\u26FF\u{1F300}-\u{1FAFF}]/gu, '');
+
+  // Remove parentheses and colons
+  t = t.replace(/[():]/g, '');
+
+  // Expand common shorthand
+  t = t.replace(/%/g, ' percent');
+  t = t.replace(/\bmo\b/gi, 'months');
+  t = t.replace(/\bmo\./gi, 'months');
+
+  // Normalize spaces
+  t = t.replace(/\s+/g, ' ').trim();
+
+  // Ensure a period at the end for full sentence feel (unless already ends with . ! ?)
+  if (!/[.!?]$/.test(t) && t.length) t += '.';
+
+  return t;
+}
+
+function shorten(s, max = 96) {
+  const t = String(s || '').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max).replace(/\s+\S*$/, ''); // cut at last whole word
+  return cut.replace(/[.!?]+$/,'') + '.';
+}
+
+function uniqueList(list) {
+  const seen = new Set();
+  const out = [];
+  for (const item of list) {
+    const k = item.toLowerCase();
+    if (!seen.has(k)) { seen.add(k); out.push(item); }
+  }
+  return out;
+}
+
 function finalizeForUI(obj){
-  // Pull the current bubble text; ignore it if it's the analyzing line.
+  // Ignore the “analyzing” placeholder if it is still on screen
   const currentText = (document.querySelector('#petMessage')?.textContent || '').trim();
   const isAnalyzing = /analyzing/i.test(currentText);
 
-  const headline = (obj.headline || obj.message || '').trim();
-  const advice = (Array.isArray(obj.advice) ? obj.advice : [])
-    .map(s => String(s || '').trim())
+  // Sanitize and simplify headline + bullets
+  let headline = sanitizeLine(shorten(obj.headline || obj.message || '', 96));
+  let advice   = (Array.isArray(obj.advice) ? obj.advice : [])
+    .map(a => sanitizeLine(shorten(a)))
     .filter(Boolean);
 
-  // base: prefer new headline; otherwise keep previous unless it's the analyzing line
-  const base = headline || (isAnalyzing ? '' : currentText);
+  advice = uniqueList(advice).slice(0, 3);
+
+  // Base: prefer new headline; otherwise keep previous unless it was the analyzing line
+  const baseRaw = headline || (isAnalyzing ? '' : currentText);
+  const base = sanitizeLine(shorten(baseRaw, 96));
   const bullets = advice.length ? advice.map(b => `• ${b}`).join('\n') : '';
   const message = bullets ? (base ? `${base}\n${bullets}` : bullets) : (base || '');
 
   return {
     state: toAllowedState(obj.state),
     health: clamp0to100(obj.health),
-    message: message.trim() || headline || '✅ Analysis complete.',
+    message: message || 'All set.',
     headline,
     advice
   };
@@ -183,40 +221,39 @@ function clamp0to100(x){
 }
 
 /* ---------------- Local deterministic fallback (client-side) --------------- */
-
+// Generates simple, clear, emoji-free sentences if server/LLM fails.
 function computeLocalFallback(inputs){
   const m = localMetrics(inputs);
   const state = localPickState(m);
   const health = localHealth(m);
 
-  // Friendly fallback with emojis
   const headline =
-    state === 'LEGENDARY' ? 'Legend status — systems humming. 🚀' :
-    state === 'THRIVING'  ? 'Strong trajectory — keep compounding. 📈' :
-    state === 'HEALTHY'   ? 'On plan — maintain discipline. ✅' :
-    state === 'SURVIVING' ? 'Stable, but tighten a few screws. 🛠️' :
-    state === 'STRUGGLING'? 'Pressure building — quick wins needed. ⚠️' :
-    state === 'CRITICAL'  ? 'Critical — address cash risk now. 🆘' :
-                            'Flatlined — emergency mode. 💀';
+    state === 'LEGENDARY' ? 'Legend energy. Keep going.' :
+    state === 'THRIVING'  ? 'Strong path. Stay steady.'   :
+    state === 'HEALTHY'   ? 'Solid footing. Nice work.'    :
+    state === 'SURVIVING' ? 'We are okay. Let’s tighten a bit.'  :
+    state === 'STRUGGLING'? 'Pressure is building. Quick wins help.' :
+    state === 'CRITICAL'  ? 'This is critical. Protect cash now.'  :
+                            'Flatlined. Emergency mode.';
 
-  const pct = x => isFinite(x) ? `${Math.round(x*100)}%` : '∞';
+  const pct = x => isFinite(x) ? `${Math.round(x*100)} percent` : 'infinite';
   const advice = [
     (m.budget_ratio <= 0.8)
-      ? `Good: Spend ratio ${pct(m.budget_ratio)} (≤80%). 👍`
+      ? `Your spending is ${pct(m.budget_ratio)} which is under the target.`
       : (m.runway_months >= 3)
-        ? `Good: Runway ${m.runway_months.toFixed(1)} mo (≥3). 💡`
-        : `Good: Clear improvement starting point. ⭐`,
+        ? `You have ${m.runway_months.toFixed(1)} months of runway which is a good base.`
+        : `You picked a clear place to start and that is good.`,
     (m.budget_ratio > 0.9)
-      ? `Fix: Trim spend ~${Math.ceil((m.budget_ratio-0.9)*100)}% to reach ≤90%. ✂️`
+      ? `Trim spending by about ${Math.ceil((m.budget_ratio-0.9)*100)} percent to reach ninety percent.`
       : (m.invest_rate < 0.10)
-        ? `Fix: Raise invest rate to 10% (now ${pct(m.invest_rate)}). 💸`
-        : `Fix: Pick one category to cut this week. 📝`,
+        ? `Raise investing to ten percent you are at ${pct(m.invest_rate)} now.`
+        : `Choose one category to cut this week and stick to it.`,
     (m.invest_rate < 0.10)
-      ? `Goal (next week): auto-move ${Math.max(1, Math.ceil(((m.inc||0)*0.10)/4))}/wk to investing. 🗓️`
-      : `Goal (next week): track spend daily; keep ratio ≤80%. 🧭`
-  ];
+      ? `Set an automatic transfer of ${Math.max(1, Math.ceil(((m.inc||0)*0.10)/4))} each week.`
+      : `Track spending daily and keep the ratio at or below eighty percent.`
+  ].map(sanitizeLine).map(s => shorten(s));
 
-  return { state: localPickState(m), health, headline, advice, message: '' };
+  return { state: localPickState(m), health, headline: sanitizeLine(headline), advice, message: '' };
 }
 
 function localMetrics(inp){
