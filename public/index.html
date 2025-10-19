@@ -47,52 +47,65 @@
 
             <!-- Page 2: Finance Input View -->
             <div id="financeView" class="page">
-                <div class="header">
-                    <div class="header-left">
-                        <h1>Your Finances</h1>
-                    </div>
-                </div>
+               <div class="header">
+                   <div class="header-left">
+                       <h1>Your Finances</h1>
+                   </div>
+               </div>
+               <div class="form-area">
+                   <!-- Current Balance (Display Only) -->
+                   <div class="balance-display">
+                       <h2>Current Balance</h2>
+                       <div class="balance-amount" id="currentBalanceDisplay">$0</div>
+                   </div>
 
-                <div class="form-area">
-                    <h2 class="form-title">
-                        Put your finances here:
-                    </h2>
 
-                    <div class="input-group">
-                        <label>Monthly Income</label>
-                        <input type="number" id="income" placeholder="place a number here">
-                    </div>
+                   <hr class="divider">
+                   <!-- Financial Inputs -->
+                   <h3 class="section-title">Financial Info</h3>
+                  
+                   <div class="input-group">
+                       <label>Initial Balance</label>
+                       <input type="number" id="initialBalance" placeholder="put a number here">
+                   </div>
 
-                    <div class="input-group">
-                        <label>Monthly Spending</label>
-                        <input type="number" id="spending" placeholder="place a number here">
-                    </div>
 
-                    <div class="input-group">
-                        <label>Total Savings</label>
-                        <input type="number" id="savings" placeholder="place a number here">
-                    </div>
+                   <div class="input-group">
+                       <label>Monthly Earnings</label>
+                       <input type="number" id="monthlyEarnings" placeholder="put a number here">
+                   </div>
 
-                    <div class="input-group">
-                        <label>Total Debt</label>
-                        <input type="number" id="debt" placeholder="place a number here">
-                    </div>
 
-                    <div class="input-group">
-                        <label>Monthly Investments</label>
-                        <input type="number" id="monthlyInvestments" placeholder="place a number here">
-                    </div>
+                   <div class="input-group">
+                       <label>Monthly Budget</label>
+                       <input type="number" id="monthlyBudget" placeholder="put a number here">
+                   </div>
 
-                    <div class="input-group">
-                        <label>Total Investment Balance</label>
-                        <input type="number" id="investmentBalance" placeholder="place a number here">
-                    </div>
 
-                    <button class="submit-btn" id="submitBtn">
-                        Feed Penny
-                    </button>
-                </div>
-            </div>
+                   <button class="submit-btn" id="feedPennyBtn">
+                       Feed Penny
+                   </button>
+                   <hr class="divider">
+                   <!-- Deposit Section -->
+                   <h3 class="section-title">Deposit</h3>
+                   <div class="action-group">
+                       <input type="number" id="depositAmount" placeholder="put a number here" class="action-input">
+                       <button class="action-btn deposit-btn" id="depositBtn">
+                           Deposit
+                       </button>
+                   </div>
+
+
+                   <!-- Withdraw Section -->
+                   <h3 class="section-title">Withdraw</h3>
+                   <div class="action-group">
+                       <input type="number" id="withdrawAmount" placeholder="put a number here" class="action-input">
+                       <button class="action-btn withdraw-btn" id="withdrawBtn">
+                           Withdraw
+                       </button>
+                   </div>
+               </div>
+           </div>
 
             <!-- Bottom Navigation (INSIDE CARD) -->
             <nav class="bottom-nav">
@@ -110,6 +123,6 @@
 
     <script type="module" src="config.js"></script>
     <script type="module" src="gemini-service.js"></script>
-    <script type="module" src="script.js"></script>
+    <script type="module" src="script2.js"></script>
 </body>
 </html>

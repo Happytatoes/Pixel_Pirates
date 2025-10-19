@@ -411,3 +411,110 @@ body {
 
 /* in style.css */
 #petArea { position: relative; }
+
+
+
+/* Balance Display */
+.balance-display {
+   text-align: center;
+   padding: 24px;
+   background: linear-gradient(135deg, #fff1b8, #ffe38f);
+   border-radius: 12px;
+   margin-bottom: 24px;
+   border: 3px solid #000;
+}
+
+
+.balance-display h2 {
+   font-size: 14px;
+   margin-bottom: 12px;
+   color: #3d3d3d;
+}
+
+
+.balance-amount {
+   font-size: 32px;
+   font-weight: bold;
+   color: #000;
+   text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.5);
+}
+
+
+/* Divider */
+.divider {
+   border: none;
+   border-top: 2px dashed #000;
+   margin: 24px 0;
+}
+
+
+/* Section Titles */
+.section-title {
+   font-size: 14px;
+   margin-bottom: 12px;
+   color: #3d3d3d;
+   text-transform: uppercase;
+}
+
+
+/* Action Group (Deposit/Withdraw) */
+.action-group {
+   display: flex;
+   gap: 8px;
+   margin-bottom: 20px;
+}
+
+
+.action-input {
+   flex: 1;
+   padding: 10px;
+   border: 2px solid #000;
+   border-radius: 0;
+   font-size: 12px;
+   background: #fffef0;
+   color: #000;
+}
+
+
+.action-input:focus {
+   outline: 2px solid #ff6ec7;
+}
+
+
+.action-btn {
+   font-family: 'Press Start 2P', monospace;
+   padding: 12px 20px;
+   border: 2px solid #000;
+   border-radius: 0;
+   cursor: pointer;
+   font-size: 12px;
+   transition: all 0.2s;
+}
+
+
+.deposit-btn {
+   background: #65d52d;
+   color: #000;
+}
+
+
+.deposit-btn:hover {
+   background: #afdd99;
+}
+
+
+.withdraw-btn {
+   background: #ff6b6b;
+   color: #fff;
+}
+
+
+.withdraw-btn:hover {
+   background: #ff9999;
+}
+
+
+.action-btn:disabled {
+   background: #ccc;
+   cursor: not-allowed;
+}
