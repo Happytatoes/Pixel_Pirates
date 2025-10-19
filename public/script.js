@@ -63,13 +63,13 @@ function resetProgress() {
 function stateFromHealth(h) {
   const n = Number(h);
   if (!Number.isFinite(n)) return 'SURVIVING';
-  if (n < 15) return 'FLATLINED';
+  if (n < 15) return 'ATROCIOUS';
   if (n < 30) return 'CRITICAL';
   if (n < 45) return 'STRUGGLING';
   if (n < 60) return 'SURVIVING';
   if (n < 75) return 'HEALTHY';
   if (n < 90) return 'THRIVING';
-  return 'LEGENDARY';
+  return 'FANTASTIC';
 }
 
 // Computes a revised overall health score based on current balance, how much
@@ -409,13 +409,13 @@ window.debugGemini = async function() {
 */
 const PET_IMAGE_BASE = '/images';
 const PET_STATES = {
-  FLATLINED: { img: 'critical.webp',  className: 'flatlined',  name: 'FLATLINED',  animation: 'pulse'  },
-  CRITICAL:  { img: 'critical.webp',  className: 'critical',    name: 'CRITICAL',   animation: 'bounce' },
+  ATROCIOUS: { img: 'critical.webp',  className: 'atrocious',  name: 'ATROCIOUS',  animation: 'pulse'  },
+  CRITICAL:  { img: 'critical.webp',  className: 'critical',    name: 'CRITICAL',   animation: 'pulse' },
   STRUGGLING:{ img: 'struggling.webp',className: 'struggling',  name: 'STRUGGLING', animation: 'pulse'  },
   SURVIVING: { img: 'happy.webp',     className: 'surviving',   name: 'SURVIVING',  animation: ''       },
   HEALTHY:   { img: 'happy.webp',     className: 'healthy',     name: 'HEALTHY',    animation: ''       },
   THRIVING:  { img: 'thriving.webp',  className: 'thriving',    name: 'THRIVING',   animation: 'bounce' },
-  LEGENDARY: { img: 'thriving.webp',  className: 'legendary',   name: 'LEGENDARY',  animation: 'pulse'  },
+  FANTASTIC: { img: 'thriving.webp',  className: 'fantastic',   name: 'FANTASTIC',  animation: 'bounce'  },
   EGG:       { img: 'egg.webp',       className: 'egg',         name: 'EGG',        animation: 'bounce' }
 };
 
@@ -803,7 +803,7 @@ async function handleDeposit() {
    // trigger at least the 'HEALTHY' state. Larger deposits yield
    // progressively better moods.
    let reactionState;
-   if (effectiveRatio >= 0.75)      reactionState = 'LEGENDARY';
+   if (effectiveRatio >= 0.75)      reactionState = 'FANTASTIC';
    else if (effectiveRatio >= 0.50) reactionState = 'THRIVING';
    else                             reactionState = 'HEALTHY';
 
@@ -923,7 +923,7 @@ async function handleWithdraw() {
    // severe withdrawals lead to worse moods. A mild withdrawal keeps the
    // pet 'SURVIVING', while extreme withdrawals can 'FLATLINE' the pet.
    let reactionState;
-   if (effectiveRatio >= 0.75) reactionState = 'FLATLINED';
+   if (effectiveRatio >= 0.75) reactionState = 'ATROCIOUS';
    else if (effectiveRatio >= 0.5) reactionState = 'CRITICAL';
    else if (effectiveRatio >= 0.25) reactionState = 'STRUGGLING';
    else reactionState = 'SURVIVING';

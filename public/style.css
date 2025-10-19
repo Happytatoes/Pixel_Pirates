@@ -101,7 +101,7 @@ body {
 .pet.bounce { animation: bounce 1s infinite; }
 .pet.pulse  { animation: pulse 2s infinite;}
 @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
-@keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:.5} }
+@keyframes pulse  { 0%, 50%, 100%{opacity:1; transform: scale(1.025)} 25%, 70%{opacity:.5; transform: scale(.975);} }
 
 .pet img.pet-img {
   width: 180px; height: 180px;
@@ -304,7 +304,7 @@ body {
   display:flex;
   gap:6px;
   pointer-events:none;
-  z-index:4;                 /* over pet, under overlays */
+  z-index:99999999;                 /* over pet, under overlays */
 }
 
 /* tiny pixel arrows rendered via inline SVG backgrounds */
