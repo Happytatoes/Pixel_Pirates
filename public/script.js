@@ -19,6 +19,75 @@ window.debugGemini = async function () {
   } catch (err) {
     console.error('Debug failed:', err);
   }
+window.switchPage = function(pageId) {
+    //console.log('Switching to:', pageId); // Debug
+    
+    // Hide all pages
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(page => page.classList.remove('active'));
+    
+    // Show target page
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.classList.add('active');
+    }
+    
+    // Update nav buttons
+    const navBtns = document.querySelectorAll('.nav-btn');
+    navBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(pageId)) {
+            btn.classList.add('active');
+        }
+    });
+};
+
+// Load state on page load
+function loadPetState() {
+    const saved = localStorage.getItem('pennyState');
+    if (saved) {
+        const state = JSON.parse(saved);
+        updatePetDisplay(state);
+    }
+}
+
+// Temporary debug function - add at the top of script.js
+window.debugGemini = async function() {
+    const testData = {
+        income: '5000',
+        spending: '3000',
+        savings: '10000',
+        debt: '2000',
+        monthlyInvestments: '500',
+        investmentBalance: '15000'
+    };
+    
+    try {
+        const prompt = buildFinancialPrompt(testData);
+        console.log('=== PROMPT ===');
+        console.log(prompt);
+        
+        const response = await callGeminiAPI(prompt);
+        console.log('=== RAW RESPONSE ===');
+        console.log(JSON.stringify(response, null, 2));
+        
+        if (response.candidates && response.candidates[0]) {
+            console.log('=== CANDIDATE STRUCTURE ===');
+            console.log(response.candidates[0]);
+            
+            if (response.candidates[0].content) {
+                console.log('=== CONTENT ===');
+                console.log(response.candidates[0].content);
+                
+                if (response.candidates[0].content.parts) {
+                    console.log('=== TEXT ===');
+                    console.log(response.candidates[0].content.parts[0].text);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Debug failed:', error);
+    }
 };
 
 /* ---------------------------- Pet state/visuals ---------------------------- */
@@ -134,8 +203,13 @@ async function handleSubmit() {
   }
 }
 
-/* ------------------------------ Event listeners ---------------------------- */
-document.getElementById('submitBtn')?.addEventListener('click', handleSubmit);
+// Event Listeners (keep these)
+document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadPetState();
+});
+
 document.querySelectorAll('input').forEach(input => {
   input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleSubmit();
