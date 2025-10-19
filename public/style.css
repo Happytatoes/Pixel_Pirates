@@ -148,11 +148,13 @@ body {
     gap: 12px;
 }
 
+/* Changed Stat Bar Style */
 .stat-bar {
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(10px);
-    border-radius: 8px;
+    background: #fff8e0;       /* Solid pastel yellow (matches speech bubble) */
+    border: 2px solid #000;    /* Black pixel border */
+    border-radius: 0;          /* Sharp corners */
     padding: 12px;
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.15); /* Pixel-style drop shadow */
 }
 
 .stat-header {
@@ -161,29 +163,69 @@ body {
     margin-bottom: 4px;
 }
 
+/* Changed Stat Text Style */
 .stat-label,
 .stat-value {
-    color: #3d3d3d;
-    font-size: 12px;
+    color: #000;               /* Pure black for pixel aesthetic */
+    font-size: 10px;           /* Smaller pixel font size */
     font-weight: 600;
+    text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5); /* Slight pixel highlight */
 }
 
+/*Changed Progress Bar Style*/
 .progress-bar {
     width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 9999px;
+    height: 12px;              /* Made taller for pixel aesthetic */
+    background: #e0e0e0;       /* Solid gray background instead of transparent */
+    border: 2px solid #000;    /* Solid black pixel border */
+    border-radius: 0;          /* Sharp corners, no rounded edges */
     overflow: hidden;
+    box-shadow: inset 2px 2px 0px rgba(0,0,0,0.2); /* Inner shadow for depth */
 }
 
+/* Changed Progress Fill Style */
 .progress-fill {
     height: 100%;
     transition: width 1s ease;
-    border-radius: 9999px;
+    border-radius: 0;          /* Sharp corners, no rounded edges */
+    position: relative;
 }
 
+/* Specific Fill Colors for Each Stat */
 .health-fill {
-    background: linear-gradient(to right, #a8e6cf, #dcedc1);
+    border-right: 2px solid rgba(0, 0, 0, 0.3); /* Darker edge for all colors */
+    transition: background-color 1s ease; /* Smooth color transitions */
+    
+    /* Pixel-style striped pattern overlay */
+    background-image: 
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 4px,
+            rgba(255, 255, 255, 0.1) 4px,
+            rgba(255, 255, 255, 0.1) 8px
+        );
+}
+
+/* Health color states - 8-bit retro colors */
+.health-fill[data-health="critical"] {
+    background-color: #e74c3c; /* Bright red - 0-20% */
+}
+
+.health-fill[data-health="low"] {
+    background-color: #ff6b4a; /* Orange-red - 21-40% */
+}
+
+.health-fill[data-health="medium"] {
+    background-color: #f39c12; /* Orange - 41-60% */
+}
+
+.health-fill[data-health="good"] {
+    background-color: #f1c40f; /* Yellow - 61-80% */
+}
+
+.health-fill[data-health="excellent"] {
+    background-color: #65d52d; /* Bright green - 81-100% */
 }
 
 /* Quick Stats */
