@@ -24,6 +24,9 @@ let overallAnalysis = null;
 let revertTimeout = null;
 let overallHealthState = null;
 
+window.__pennyTempSpeech = window.__pennyTempSpeech || '';
+
+
 function getProgress() {
   return {
     dayCount: parseInt(localStorage.getItem('dayCount')) || 0,
@@ -263,6 +266,7 @@ window.switchPage = function(pageId) {
 
 function handleReset() {
     // Confirm with user
+    window.__pennyTempSpeech = '';
     console.log("RESET CLICKED");
 
     // Clear all localStorage
@@ -532,10 +536,25 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
   // Message (headline+bullets already composed by gemini-service finalizeForUI)
 
   const safeMsg = String(analysis?.message || '').trim();
-  if (safeMsg && petMessage) petMessage.textContent = safeMsg;
+
+  if (isTemporary) {
+      if (safeMsg && petMessage) {
+          petMessage.textContent = safeMsg;
+          // Remember this temporary message so it persists on revert
+          window.__pennyTempSpeech = safeMsg;
+      }
+  } else {
+      if (window.__pennyTempSpeech && petMessage) {
+          // A temporary message is active; keep showing it
+          petMessage.textContent = window.__pennyTempSpeech;
+      } else if (safeMsg && petMessage) {
+          // No active temporary message; show the long-term message
+          petMessage.textContent = safeMsg;
+      }
+  }
 
   if (isTemporary && analysis && analysis.direction) {
-    showArrows(analysis.direction);
+    showArrows(analysis.direction);   // 'up' or 'down'
   }
 
   // For permanent updates, remember this state so we can revert to it later.
@@ -549,22 +568,19 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
   // an immediate state change. The revert uses the stored overallHealthState and
   // does not modify the health bar unless the revert call requests it.
   if (isTemporary && overallHealthState) {
-    clearTimeout(revertTimeout);
-    revertTimeout = setTimeout(() => {
-      // Revert to the saved overall state
-      if (overallHealthState) {
-        updatePetDisplay(overallHealthState, false);
-        // Persist the overall state
-        try {
-          savePetState(overallHealthState);
-        } catch {}
-        // Restore the long-term message in the speech bubble overlay
-        try {
-          if (window.pennyShowMessage) window.pennyShowMessage(overallHealthState.message);
-        } catch {}
-      }
-    }, 3000);
+      clearTimeout(revertTimeout);
+      revertTimeout = setTimeout(() => {
+          if (overallHealthState) {
+              updatePetDisplay(overallHealthState, false);
+              // Persist the overall state
+              try {
+                  savePetState(overallHealthState);
+              } catch {}
+              // Do not update the speech bubble here; the temporary message should persist.
+          }
+      }, 4000);
   }
+
 }
 
 function showArrows(direction) {
@@ -646,6 +662,7 @@ async function handleSubmit() {
 
 /* ----------------------- Feed Penny (Gemini Analysis) ----------------------- */
 async function handleFeedPenny() {
+   window.__pennyTempSpeech = '';
    const initialBalance = document.getElementById('initialBalance').value;
    const monthlyEarnings = document.getElementById('monthlyEarnings').value;
    const monthlyBudget = document.getElementById('monthlyBudget').value;
@@ -727,6 +744,8 @@ async function handleFeedPenny() {
 
 /* --------------------------- Deposit Handler --------------------------- */
 async function handleDeposit() {
+    window.__pennyTempSpeech = '';
+
    const depositInput = document.getElementById('depositAmount');
    const amount = parseFloat(depositInput.value);
 
@@ -843,6 +862,7 @@ async function handleDeposit() {
 
 /* --------------------------- Withdraw Handler --------------------------- */
 async function handleWithdraw() {
+      window.__pennyTempSpeech = '';
    const withdrawInput = document.getElementById('withdrawAmount');
    const amount = parseFloat(withdrawInput.value);
 
