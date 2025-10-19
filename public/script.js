@@ -175,9 +175,9 @@ async function handleSubmit() {
   // 1) set analyzing
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.textContent = '🤔 Analyzing with AI...';
+    submitBtn.textContent = 'Analyzing with AI...';
   }
-  if (petMsgEl) petMsgEl.textContent = '🤖 Gemini is analyzing your finances... This might take a moment!';
+  if (petMsgEl) petMsgEl.textContent = 'Gemini is analyzing your finances... This might take a moment!';
 
   try {
     // 2) call analyzer
@@ -195,11 +195,11 @@ async function handleSubmit() {
 
   } catch (error) {
     console.error('Analysis failed:', error);
-    if (petMsgEl) petMsgEl.textContent = `😵 ${error?.message || 'Something went wrong.'}`;
+    if (petMsgEl) petMsgEl.textContent = `${error?.message || 'Something went wrong.'}`;
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.textContent = '🍼 Feed Penny';
+      submitBtn.textContent = 'Feed Penny';
     }
   }
 }
