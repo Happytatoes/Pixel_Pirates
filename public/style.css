@@ -280,11 +280,12 @@ body {
 
 .pet-egg {
   width: 140px;
-  image-rendering: pixelated;
   display: block;
   margin: 0 auto;
   filter: drop-shadow(3px 3px 0 #000);
   animation: eggBounce 1.8s ease-in-out infinite;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 @keyframes eggBounce {

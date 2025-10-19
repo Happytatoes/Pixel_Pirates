@@ -24,67 +24,6 @@ let overallAnalysis = null;
 let revertTimeout = null;
 let overallHealthState = null;
 
-function handleReset() { // Confirm with user 
-  if (!confirm('Reset everything? This will clear all your data and return Penny to an egg. 🥚')) { return; } 
-  //Clear all localStorage 
-  localStorage.removeItem('currentBalance'); 
-  localStorage.removeItem('initialBalance'); 
-  localStorage.removeItem('monthlyEarnings'); 
-  localStorage.removeItem('monthlyBudget'); 
-  localStorage.removeItem('pennyState'); // Reset to egg state 
-  const eggState = { state: 'EGG', health: 0, message: "Feed me your financial data! I'm ready to hatch!" }; 
-  updatePetDisplay(eggState); updateBalanceDisplay(); // Clear all input fields 
-  document.getElementById('initialBalance').value = '';
-  document.getElementById('monthlyEarnings').value = ''; 
-  document.getElementById('monthlyBudget').value = ''; 
-  document.getElementById('depositAmount').value = ''; 
-  document.getElementById('withdrawAmount').value = ''; // Hide speech bubble 
-  if (window.pennyHideMessage) { 
-    window.pennyHideMessage(); 
-  } // Show success message alert('✅ Reset complete! Penny is back to an egg.'); // Switch to pet view 
-  window.switchPage('petView'); 
-}
-// ---------------------------------------------------------------------------
-// Arrow display helper
-//
-// When a temporary reaction occurs (deposit or withdrawal), we visually
-// reinforce the direction of the change by showing a trio of blocky pixel
-// arrows above the pet. Positive transactions show green arrows moving
-// upward; negative transactions show red arrows moving downward. The
-// arrows fade out automatically after the animation completes. The pet
-// element is set to relative positioning so absolute positioning inside
-// works as expected.
-function showArrows(direction) {
-  const petEl = document.getElementById('pet');
-  if (!petEl) return;
-  // Remove any previous arrow containers to avoid stacking
-  petEl.querySelectorAll('.arrow-container').forEach((el) => el.remove());
-  // Create container
-  const container = document.createElement('div');
-  container.className = 'arrow-container';
-  // Position the container just above the pet; use bottom:100% relative to the pet
-  container.style.position = 'absolute';
-  container.style.bottom = '100%';
-  container.style.left = '50%';
-  container.style.transform = 'translateX(-50%)';
-  // Create three arrows
-  for (let i = 0; i < 3; i++) {
-    const arrow = document.createElement('div');
-    arrow.className = direction === 'up' ? 'arrow-up' : 'arrow-down';
-    container.appendChild(arrow);
-  }
-  // Ensure pet is positioned relative so our absolute container is anchored
-  const computedStyle = window.getComputedStyle(petEl);
-  if (computedStyle.position === 'static') {
-    petEl.style.position = 'relative';
-  }
-  petEl.appendChild(container);
-  // Remove container after animation ends (1.6s for safety)
-  setTimeout(() => {
-    container.remove();
-  }, 1600);
-}
-
 function getProgress() {
   return {
     dayCount: parseInt(localStorage.getItem('dayCount')) || 0,
@@ -118,21 +57,19 @@ function resetProgress() {
   saveProgress(p);
 }
 
-
-
 // Converts a numeric health score (0–100) into a game state name. These
 // thresholds mirror those used on the backend. Keep in sync with
 // gemini-service.js.
 function stateFromHealth(h) {
   const n = Number(h);
   if (!Number.isFinite(n)) return 'SURVIVING';
-  if (n < 15) return 'ATROCIOUS';
+  if (n < 15) return 'FLATLINED';
   if (n < 30) return 'CRITICAL';
   if (n < 45) return 'STRUGGLING';
   if (n < 60) return 'SURVIVING';
   if (n < 75) return 'HEALTHY';
   if (n < 90) return 'THRIVING';
-  return 'FANTASTIC';
+  return 'LEGENDARY';
 }
 
 // Computes a revised overall health score based on current balance, how much
@@ -324,6 +261,46 @@ window.switchPage = function(pageId) {
 };
 
 
+function handleReset() {
+    // Confirm with user
+    console.log("RESET CLICKED");
+
+    // Clear all localStorage
+    localStorage.removeItem('currentBalance');
+    localStorage.removeItem('initialBalance');
+    localStorage.removeItem('monthlyEarnings');
+    localStorage.removeItem('monthlyBudget');
+    localStorage.removeItem('pennyState');
+
+    // Reset to egg state
+    const eggState = {
+        state: 'EGG',
+        health: 0,
+        message: "Feed me your financial data! I'm ready to hatch!"
+    };
+
+    updatePetDisplay(eggState);
+    updateBalanceDisplay();
+
+    // Clear all input fields
+    document.getElementById('initialBalance').value = '';
+    document.getElementById('monthlyEarnings').value = '';
+    document.getElementById('monthlyBudget').value = '';
+    document.getElementById('depositAmount').value = '';
+    document.getElementById('withdrawAmount').value = '';
+
+    // Hide speech bubble
+    if (window.pennyHideMessage) {
+        window.pennyHideMessage();
+    }
+
+    // Show success message
+    //alert('✅ Reset complete! Penny is back to an egg.');
+    
+    // Switch to pet view
+    window.switchPage('petView');
+}
+
 /* ------------------------- localStorage Helpers ------------------------- */
 function getCurrentBalance() {
    return parseFloat(localStorage.getItem('currentBalance')) || 0;
@@ -432,13 +409,13 @@ window.debugGemini = async function() {
 */
 const PET_IMAGE_BASE = '/images';
 const PET_STATES = {
-  ATROCIOUS: { img: 'critical.webp',  className: 'atrocious',  name: 'ATROCIOUS',  animation: 'pulse'  },
+  FLATLINED: { img: 'critical.webp',  className: 'flatlined',  name: 'FLATLINED',  animation: 'pulse'  },
   CRITICAL:  { img: 'critical.webp',  className: 'critical',    name: 'CRITICAL',   animation: 'bounce' },
   STRUGGLING:{ img: 'struggling.webp',className: 'struggling',  name: 'STRUGGLING', animation: 'pulse'  },
   SURVIVING: { img: 'happy.webp',     className: 'surviving',   name: 'SURVIVING',  animation: ''       },
   HEALTHY:   { img: 'happy.webp',     className: 'healthy',     name: 'HEALTHY',    animation: ''       },
   THRIVING:  { img: 'thriving.webp',  className: 'thriving',    name: 'THRIVING',   animation: 'bounce' },
-  FANTASTIC: { img: 'thriving.webp',  className: 'fantastic',   name: 'FANTASTIC',  animation: 'pulse'  },
+  LEGENDARY: { img: 'thriving.webp',  className: 'legendary',   name: 'LEGENDARY',  animation: 'pulse'  },
   EGG:       { img: 'egg.webp',       className: 'egg',         name: 'EGG',        animation: 'bounce' }
 };
 
@@ -486,7 +463,7 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
   if (pet) {
     const imgName = current.img || 'happy.webp';
     const src = `${PET_IMAGE_BASE}/${imgName}`;
-    pet.className = 'pet'; // keep still; we'll add .pop only for temp reaction
+    pet.className = 'pet';   // animations are driven only by the temp reaction code
 
     // If there's already an <img>, update its src; otherwise inject one.
     let img = pet.querySelector('img.pet-img');
@@ -494,8 +471,8 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
       pet.innerHTML = ''; // clear any emoji text
       img = document.createElement('img');
       img.className = 'pet-img';
-      img.width = 96;      // match your previous emoji visual size
-      img.height = 96;
+      img.width = 180;      // match your previous emoji visual size
+      img.height = 180;
       img.decoding = 'async';
       img.alt = current.name;
       pet.appendChild(img);
@@ -504,30 +481,34 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
     img.alt = current.name;
   }
 
-  // --- Pop only for temporary reaction renders ---
   const prevState = pet.dataset.state || '';
   pet.dataset.state = current.name;
 
-  // Bind once: clean up the class when the CSS animation ends
-  if (!pet._popBound) {
-    pet.addEventListener('animationend', (e) => {
-      if (e.animationName === 'petPop') pet.classList.remove('pop');
-    });
-    pet._popBound = true;
-  }
+  // Clean any prior temp class
+  pet.classList.remove('bounce', 'pulse');
 
-  // Only animate on temporary render and only if state actually changed
+  // Apply only for temporary render AND only if the state actually changed
   if (isTemporary && prevState !== current.name) {
-    pet.classList.remove('pop'); // retrigger by toggling
-    void pet.offsetWidth;        // reflow
-    pet.classList.add('pop');
-  } else {
-    pet.classList.remove('pop'); // permanent renders must be still
+    // Choose the animation by direction: up = good (bounce), down = negative (pulse)
+    const animClass = (analysis && analysis.direction === 'down') ? 'pulse' : 'bounce';
+
+    // Retrigger by toggling (ensure animation restarts)
+    void pet.offsetWidth;
+    pet.classList.add(animClass);
+
+    // Remove the temp class when the CSS animation ends so the pet is still on revert
+    if (!pet._tempAnimBound) {
+      pet.addEventListener('animationend', () => {
+        pet.classList.remove('bounce', 'pulse');
+      });
+      pet._tempAnimBound = true;
+    }
   }
 
-
-  if (stateName) stateName.textContent = current.name;
-
+  if (stateName) {
+      // show the reaction word during temp reactions; otherwise show long-term state name
+      stateName.textContent = (isTemporary && analysis?.state) ? analysis.state : current.name;
+    }
   // When updating the pet, decide whether to change the health bar.
   // For temporary reactions (isTemporary=true), we do not update the health bar.
   const health = clamp0to100(analysis?.health);
@@ -548,16 +529,9 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
   // When temporary and not updating the bar, keep the existing health bar state; no need to hide stats or update
 
   // Message (headline+bullets already composed by gemini-service finalizeForUI)
+
   const safeMsg = String(analysis?.message || '').trim();
   if (safeMsg && petMessage) petMessage.textContent = safeMsg;
-
-  // If this is a temporary reaction with a direction hint, show animated
-  // arrows above the pet. The arrows visually reinforce the direction of
-  // the transaction (up for deposits, down for withdrawals). Only
-  // temporary renders trigger arrows so long‑term states remain still.
-  if (isTemporary && analysis && analysis.direction) {
-    showArrows(analysis.direction);
-  }
 
   // For permanent updates, remember this state so we can revert to it later.
   if (!isTemporary) {
@@ -584,7 +558,7 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
           if (window.pennyShowMessage) window.pennyShowMessage(overallHealthState.message);
         } catch {}
       }
-    }, 5000);
+    }, 3000);
   }
 }
 
@@ -645,6 +619,7 @@ document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenn
 document.addEventListener('DOMContentLoaded', () => { loadPetState(); });
 document.getElementById('depositBtn').addEventListener('click', handleDeposit);
 document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
+document.getElementById('resetBtn').addEventListener('click', handleReset);
 
 
 
@@ -808,7 +783,7 @@ async function handleDeposit() {
    // trigger at least the 'HEALTHY' state. Larger deposits yield
    // progressively better moods.
    let reactionState;
-   if (effectiveRatio >= 0.75)      reactionState = 'FLATLINED';
+   if (effectiveRatio >= 0.75)      reactionState = 'LEGENDARY';
    else if (effectiveRatio >= 0.50) reactionState = 'THRIVING';
    else                             reactionState = 'HEALTHY';
 
@@ -823,9 +798,10 @@ async function handleDeposit() {
    const petReaction = {
      state: reactionState,
      health: baseHealth,
-     message: msg
-   ,
-     direction: 'up'
+     message: msg,
+    direction: 'up'
+
+
    };
 
    // Update progress tracker (handles day finalization rules)
@@ -898,98 +874,53 @@ async function handleWithdraw() {
    updatePetDisplay(overallAnalysis, false);
    savePetState(overallAnalysis);
 
-   // === Healthy withdrawal logic ===
-   // If there was a deposit earlier in the day, subtract that deposit from
-   // the withdrawal. Any remaining net withdrawal is what matters. If the
-   // net amount is within the daily budget, consider the withdrawal okay
-   // (state 'SURVIVING') and skip further negativity.
-   let netWithdraw = amount;
-   const progressSnapshot = getProgress();
-   if (progressSnapshot && progressSnapshot.lastAction === 'deposit' && progressSnapshot.dailyDeposit > 0) {
-     netWithdraw = amount - progressSnapshot.dailyDeposit;
-     if (netWithdraw < 0) netWithdraw = 0;
+   // Compute an effective ratio reflecting how significant this withdrawal is
+   // relative to your current balance, your daily budget, and your monthly
+   // earnings. To emphasize the effect of the monthly budget, we weight the
+   // daily budget ratio twice as much as the others. The weighted average
+   // is clamped between 0 and 1. Larger ratios produce stronger negative moods.
+   let totalRatio = 0;
+   let weightSum  = 0;
+   if (currentBal > 0) {
+     totalRatio += (amount / currentBal) * 1;
+     weightSum  += 1;
    }
-   // Check if the net withdrawal is within the healthy daily budget limit. Only
-   // apply this shortcut if a budget exists; otherwise fall back to the
-   // standard weighting logic. When the net withdrawal is small enough, we
-   // treat the reaction as neutral ('SURVIVING') and use the base health.
-   if (dailyBudget > 0 && netWithdraw <= dailyBudget) {
-     const msgHealthy = dailyBudget > 0
-       ? `You withdrew $${amount.toFixed(2)}, which is ${((netWithdraw) / dailyBudget * 100).toFixed(0)}% of your daily budget. You're within your plan!`
-       : `You withdrew $${amount.toFixed(2)}.`;
-     const petReactionHealthy = {
-       state: 'SURVIVING',
-       health: newOverallHealth,
-       message: msgHealthy
-     };
-     // Update progress tracker (handles day finalization rules)
-     handleWithdrawProgress(amount);
-     // Show the instantaneous reaction without updating the health bar
-     updatePetDisplay(petReactionHealthy, true);
-     try {
-       if (window.pennyShowMessage) window.pennyShowMessage(msgHealthy);
-     } catch {}
-     // Clear input and switch to pet view
-     withdrawInput.value = '';
-     window.switchPage('petView');
-     return;
-   }
-
-   /*
-    * Compute a ratio that reflects how large this withdrawal is relative
-    * to your daily budget (if set) and, secondarily, your earning power.
-    * We incorporate any deposit made earlier in the day by using the
-    * net withdrawal amount (withdrawal minus same‑day deposit). When
-    * dailyBudget exists, we rely primarily on it to judge whether the
-    * withdrawal is healthy. Otherwise, fall back to monthly earnings or
-    * current balance so that a baseline reaction is still produced. The
-    * resulting ratio is **not** clamped before we map it to a mood –
-    * larger values will yield stronger negative states below.
-    */
-   const netAmt = typeof netWithdraw === 'number' ? netWithdraw : amount;
-   let ratioBudget = 0;
    if (dailyBudget > 0) {
-     ratioBudget = netAmt / dailyBudget;
-   } else if (monthlyEarnings > 0) {
-     // If no budget, compare to earnings (treat monthly earnings like a monthly budget)
-     ratioBudget = netAmt / monthlyEarnings;
-   } else if (currentBal > 0) {
-     // As a last resort, compare to current balance
-     ratioBudget = netAmt / currentBal;
-   } else {
-     ratioBudget = 1;
+     totalRatio += (amount / dailyBudget) * 2; // double weight for budget
+     weightSum  += 2;
+   }
+   if (monthlyEarnings > 0) {
+     totalRatio += (amount / monthlyEarnings) * 1;
+     weightSum  += 1;
+   }
+   let effectiveRatio = 0;
+   if (weightSum > 0) {
+     effectiveRatio = totalRatio / weightSum;
+     effectiveRatio = Math.max(0, Math.min(1, effectiveRatio));
    }
 
-   // Determine the reaction state based on ratioBudget. If the withdrawal
-   // is within one daily budget worth (ratio ≤ 1), the mood remains
-   // neutral ('SURVIVING'). As the ratio increases, the state worsens
-   // gradually. These thresholds provide a smoother transition than the
-   // previous weighted average, especially when a deposit has offset part
-   // of the withdrawal.
+   // Determine the reaction state based on the size of the withdrawal. More
+   // severe withdrawals lead to worse moods. A mild withdrawal keeps the
+   // pet 'SURVIVING', while extreme withdrawals can 'FLATLINE' the pet.
    let reactionState;
-   if (ratioBudget <= 1)          reactionState = 'SURVIVING';
-   else if (ratioBudget <= 1.5)    reactionState = 'STRUGGLING';
-   else if (ratioBudget <= 2.5)    reactionState = 'CRITICAL';
-   else                            reactionState = 'ATROCIOUS';
+   if (effectiveRatio >= 0.75) reactionState = 'FLATLINED';
+   else if (effectiveRatio >= 0.5) reactionState = 'CRITICAL';
+   else if (effectiveRatio >= 0.25) reactionState = 'STRUGGLING';
+   else reactionState = 'SURVIVING';
 
    // Use the base overall health for the health value during the reaction
    const baseHealth = newOverallHealth;
 
    // Construct a message for the reaction
-   // Use netAmt for the percent calculation when comparing to the daily budget,
-   // so that a same‑day deposit properly reduces the apparent spending. When
-   // no budget exists, fall back to the full withdrawal amount in the
-   // message.
-   const withdrawPercent = dailyBudget > 0 ? ((netAmt) / dailyBudget * 100) : null;
    const msg = dailyBudget > 0
-     ? `You withdrew $${amount.toFixed(2)} which is ${withdrawPercent.toFixed(0)}% of your daily budget. Try to stay within your plan!`
+     ? `You withdrew $${amount.toFixed(2)} which is ${(amount / dailyBudget * 100).toFixed(0)}% of your daily budget. Try to stay within your plan!`
      : `You withdrew $${amount.toFixed(2)}. Keep an eye on your spending!`;
    const petReaction = {
      state: reactionState,
      health: baseHealth,
-     message: msg
-   ,
-     direction: 'down'
+     message: msg,
+    direction: 'down'
+
    };
 
    // Update progress tracker (handles day finalization rules)
@@ -1019,14 +950,12 @@ document.addEventListener('DOMContentLoaded', () => {
    if (saved.initialBalance) document.getElementById('initialBalance').value = saved.initialBalance;
    if (saved.monthlyEarnings) document.getElementById('monthlyEarnings').value = saved.monthlyEarnings;
    if (saved.monthlyBudget) document.getElementById('monthlyBudget').value = saved.monthlyBudget;
+
+   document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenny);
+    document.getElementById('depositBtn').addEventListener('click', handleDeposit);
+    document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
+    document.getElementById('resetBtn').addEventListener('click', handleReset); // ✅ move here
 });
-
-
-// Button event listeners
-document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenny);
-document.getElementById('depositBtn').addEventListener('click', handleDeposit);
-document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
-document.getElementById('resetBtn').addEventListener('click', handleReset);
 
 
 // Enter key support
