@@ -19,6 +19,7 @@ window.debugGemini = async function () {
   } catch (err) {
     console.error('Debug failed:', err);
   }
+}
 window.switchPage = function(pageId) {
     //console.log('Switching to:', pageId); // Debug
     
@@ -184,7 +185,7 @@ async function handleSubmit() {
 
     // 3) update visuals (guard exceptions)
     try { updatePetDisplay(analysis); } catch (e) { console.warn('updatePetDisplay error:', e); }
-
+        window.switchPage('petView');
     // 4) force-overwrite the bubble
     const nextMsg =
       (analysis && typeof analysis.message === 'string' && analysis.message.trim()) ||
