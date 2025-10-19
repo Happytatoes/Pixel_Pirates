@@ -28,6 +28,46 @@ window.switchPage = function(pageId) {
 };
 
 
+function handleReset() {
+    // Confirm with user
+    console.log("RESET CLICKED");
+
+    // Clear all localStorage
+    localStorage.removeItem('currentBalance');
+    localStorage.removeItem('initialBalance');
+    localStorage.removeItem('monthlyEarnings');
+    localStorage.removeItem('monthlyBudget');
+    localStorage.removeItem('pennyState');
+
+    // Reset to egg state
+    const eggState = {
+        state: 'EGG',
+        health: 0,
+        message: "Feed me your financial data! I'm ready to hatch!"
+    };
+
+    updatePetDisplay(eggState);
+    updateBalanceDisplay();
+
+    // Clear all input fields
+    document.getElementById('initialBalance').value = '';
+    document.getElementById('monthlyEarnings').value = '';
+    document.getElementById('monthlyBudget').value = '';
+    document.getElementById('depositAmount').value = '';
+    document.getElementById('withdrawAmount').value = '';
+
+    // Hide speech bubble
+    if (window.pennyHideMessage) {
+        window.pennyHideMessage();
+    }
+
+    // Show success message
+    //alert('✅ Reset complete! Penny is back to an egg.');
+    
+    // Switch to pet view
+    window.switchPage('petView');
+}
+
 /* ------------------------- localStorage Helpers ------------------------- */
 function getCurrentBalance() {
    return parseFloat(localStorage.getItem('currentBalance')) || 0;
@@ -228,8 +268,11 @@ function updatePetDisplay(analysis) {
   }
 
   // Message (headline+bullets already composed by gemini-service finalizeForUI)
+
   const safeMsg = String(analysis?.message || '').trim();
-  if (safeMsg && petMessage) petMessage.textContent = safeMsg;
+  if (safeMsg && window.pennyShowMessage) {
+    window.pennyShowMessage(safeMsg);
+  }
 }
 
 /* --------------------------- Submit handler (NEW) --------------------------- */
@@ -289,6 +332,7 @@ document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenn
 document.addEventListener('DOMContentLoaded', () => { loadPetState(); });
 document.getElementById('depositBtn').addEventListener('click', handleDeposit);
 document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
+document.getElementById('resetBtn').addEventListener('click', handleReset);
 
 // Enter to submit
    const petArea = document.getElementById('petArea');
@@ -511,13 +555,12 @@ document.addEventListener('DOMContentLoaded', () => {
    if (saved.initialBalance) document.getElementById('initialBalance').value = saved.initialBalance;
    if (saved.monthlyEarnings) document.getElementById('monthlyEarnings').value = saved.monthlyEarnings;
    if (saved.monthlyBudget) document.getElementById('monthlyBudget').value = saved.monthlyBudget;
+
+   document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenny);
+    document.getElementById('depositBtn').addEventListener('click', handleDeposit);
+    document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
+    document.getElementById('resetBtn').addEventListener('click', handleReset); // ✅ move here
 });
-
-
-// Button event listeners
-document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenny);
-document.getElementById('depositBtn').addEventListener('click', handleDeposit);
-document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
 
 
 // Enter key support
