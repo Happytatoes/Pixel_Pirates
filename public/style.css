@@ -398,17 +398,6 @@ body {
     color: #000;
 }
 
-.bubble-tail {
-    width: 16px;
-    height: 16px;
-    background: #fff8e0;
-    border: 2px solid #000;
-    transform: rotate(45deg);
-    position: absolute;
-    bottom: -8px;
-    left: 32px;
-}
-
 /* in style.css */
 #petArea { position: relative; }
 
