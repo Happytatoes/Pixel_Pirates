@@ -711,11 +711,13 @@ async function handleDeposit() {
    }
 
    // Determine the reaction state based on the size of the deposit.
+   // Any deposit is considered a positive step, so even small amounts
+   // trigger at least the 'HEALTHY' state. Larger deposits yield
+   // progressively better moods.
    let reactionState;
-   if (effectiveRatio >= 0.75) reactionState = 'LEGENDARY';
-   else if (effectiveRatio >= 0.5) reactionState = 'THRIVING';
-   else if (effectiveRatio >= 0.25) reactionState = 'HEALTHY';
-   else reactionState = 'SURVIVING';
+   if (effectiveRatio >= 0.75)      reactionState = 'LEGENDARY';
+   else if (effectiveRatio >= 0.50) reactionState = 'THRIVING';
+   else                             reactionState = 'HEALTHY';
 
    // Use the base overall health for the health value during the reaction
    const baseHealth = newOverallHealth;
