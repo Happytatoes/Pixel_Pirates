@@ -488,7 +488,7 @@ function updatePetDisplay(analysis, isTemporary = false, updateBarWhenTemporary 
   pet.classList.remove('bounce', 'pulse');
 
   // Apply only for temporary render AND only if the state actually changed
-  if (isTemporary && prevState !== current.name) {
+  if (isTemporary) {
     // Choose the animation by direction: up = good (bounce), down = negative (pulse)
     const animClass = (analysis && analysis.direction === 'down') ? 'pulse' : 'bounce';
 
