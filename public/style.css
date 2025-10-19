@@ -425,8 +425,7 @@ body {
   height: 96px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-
-
+}
 /* Balance Display */
 .balance-display {
    text-align: center;

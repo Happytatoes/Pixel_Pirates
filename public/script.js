@@ -285,8 +285,10 @@ async function handleSubmit() {
 }
 
 // Event Listeners
-document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenny);
 document.addEventListener('DOMContentLoaded', () => { loadPetState(); });
+document.getElementById('depositBtn').addEventListener('click', handleDeposit);
+document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
 
 // Enter to submit
    const petArea = document.getElementById('petArea');
@@ -322,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => { loadPetState(); });
 
    const safeMsg = String(analysis?.message || '').trim();
    if (safeMsg && petMessage) petMessage.textContent = safeMsg;
-}
+
 
 
 /* ----------------------- Feed Penny (Gemini Analysis) ----------------------- */
