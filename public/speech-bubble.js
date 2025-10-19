@@ -1,11 +1,10 @@
 /* ===== Speech Bubble controller (creates its own DOM) ===== */
 (function () {
-  // Anchor bubble to the emoji element
   const CHAR_SELECTOR = '#pet';
   const AREA_SELECTOR = '#petArea';
 
   let trigger, overlay, card, closeBtn, textEl, charEl, areaEl, lastText = '';
-  let ro; // ResizeObserver
+  let ro;
 
   function onReady(fn) {
     if (document.readyState === 'loading') {
@@ -23,14 +22,14 @@
     if (!document.getElementById('speech-trigger')) {
       const t = document.createElement('div');
       t.id = 'speech-trigger';
-      t.className = 'speech-trigger loading';
+      t.className = 'speech-trigger';
       t.setAttribute('aria-label', 'Open message');
       t.hidden = true;
       t.innerHTML = `
-        <span class="dots">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        </span>
-        <span class="preview"></span>
+        <span class="puff puff-left"></span>
+        <span class="puff puff-right"></span>
+        <span class="preview">...</span>
+        <span class="nub"></span>
       `;
       areaEl.appendChild(t);
     }
@@ -67,7 +66,7 @@
       return;
     }
 
-    // Reposition on a bunch of events
+    // Reposition on layout changes
     window.addEventListener('resize', positionTrigger, { passive: true });
     window.addEventListener('scroll', positionTrigger, { passive: true });
     if ('fonts' in document && document.fonts?.ready) {
@@ -84,7 +83,6 @@
     closeBtn.addEventListener('click', close);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 
-    // First position
     positionTrigger();
 
     // Expose small API
@@ -114,30 +112,19 @@
     trigger.style.left = `${left}px`;
   }
 
-  function truncatePreview(s, max = 48) {
-    const t = String(s || '').replace(/\s+/g, ' ').trim();
-    if (t.length <= max) return t;
-    return t.slice(0, max).replace(/\s+\S*$/, '') + '…';
-  }
-
   function show(text) {
     lastText = String(text || '').trim();
-    if (!lastText) return hide();
 
-    // Pixelated one-line preview in the small bubble
+    // The mini bubble always shows "..." in pixel font (no sentence preview)
     const previewEl = trigger.querySelector('.preview');
-    previewEl.textContent = truncatePreview(lastText);
+    if (previewEl) previewEl.textContent = '...';
 
-    // Switch from loading dots to preview text
-    trigger.classList.remove('loading');
+    // The full message goes in the overlay
+    textEl.textContent = lastText || '';
 
-    // Overlay text
-    textEl.textContent = lastText;
-
-    // Make it visible and place it
     trigger.hidden = false;
     trigger.classList.add('visible');
-    trigger.setAttribute('aria-label', `Open message: ${previewEl.textContent}`);
+    trigger.setAttribute('aria-label', 'Open message');
     positionTrigger();
   }
 
@@ -149,7 +136,6 @@
 
   function open() {
     if (!lastText) return;
-    textEl.textContent = lastText;
     overlay.classList.add('open');
     overlay.removeAttribute('aria-hidden');
     document.documentElement.style.overflow = 'hidden';

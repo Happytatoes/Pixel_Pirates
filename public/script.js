@@ -1,43 +1,75 @@
 // script.js
 import { analyzeFinancialData } from './gemini-service.js';
 
-/* ------------------------------- Debug helper ------------------------------- */
-// Simple local test that uses the *exported* analyzeFinancialData and logs the result.
-window.debugGemini = async function () {
-  const testData = {
-    income: '5000',
-    spending: '3000',
-    savings: '10000',
-    debt: '2000',
-    monthlyInvestments: '500',
-    investmentBalance: '15000'
-  };
-  try {
-    console.log('=== analyzeFinancialData(test) ===');
-    const out = await analyzeFinancialData(testData);
-    console.log(out);
-  } catch (err) {
-    console.error('Debug failed:', err);
-  }
-};
 
+/* ----------------------------- Navigation ----------------------------- */
 window.switchPage = function(pageId) {
-  const pages = document.querySelectorAll('.page');
-  pages.forEach(page => page.classList.remove('active'));
+   const pages = document.querySelectorAll('.page');
+   pages.forEach(page => page.classList.remove('active'));
+  
+   const targetPage = document.getElementById(pageId);
+   if (targetPage) {
+       targetPage.classList.add('active');
+   }
+  
+   const navBtns = document.querySelectorAll('.nav-btn');
+   navBtns.forEach(btn => {
+       btn.classList.remove('active');
+       if (btn.getAttribute('onclick').includes(pageId)) {
+           btn.classList.add('active');
+       }
+   });
 
-  const targetPage = document.getElementById(pageId);
-  if (targetPage) targetPage.classList.add('active');
 
-  const navBtns = document.querySelectorAll('.nav-btn');
-  navBtns.forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.getAttribute('onclick').includes(pageId)) {
-      btn.classList.add('active');
-    }
-  });
+   // Update balance display when switching to finance view
+   if (pageId === 'financeView') {
+       updateBalanceDisplay();
+   }
 };
 
-// Load state on page load
+
+/* ------------------------- localStorage Helpers ------------------------- */
+function getCurrentBalance() {
+   return parseFloat(localStorage.getItem('currentBalance')) || 0;
+}
+
+
+function setCurrentBalance(amount) {
+   localStorage.setItem('currentBalance', amount);
+   updateBalanceDisplay();
+}
+
+
+function getFinancialData() {
+   return {
+       initialBalance: parseFloat(localStorage.getItem('initialBalance')) || 0,
+       monthlyEarnings: parseFloat(localStorage.getItem('monthlyEarnings')) || 0,
+       monthlyBudget: parseFloat(localStorage.getItem('monthlyBudget')) || 0
+   };
+}
+
+
+function saveFinancialData(data) {
+   localStorage.setItem('initialBalance', data.initialBalance);
+   localStorage.setItem('monthlyEarnings', data.monthlyEarnings);
+   localStorage.setItem('monthlyBudget', data.monthlyBudget);
+}
+
+
+function updateBalanceDisplay() {
+   const balance = getCurrentBalance();
+   const displayEl = document.getElementById('currentBalanceDisplay');
+   if (displayEl) {
+       displayEl.textContent = `$${balance.toFixed(2)}`;
+   }
+}
+
+
+function savePetState(state) {
+   localStorage.setItem('pennyState', JSON.stringify(state));
+}
+
+
 function loadPetState() {
   const saved = localStorage.getItem('pennyState');
   if (saved) {
@@ -126,18 +158,19 @@ const PET_STATES = {
 })();
 
 function toAllowedState(s) {
-  const up = String(s || '').toUpperCase();
-  return PET_STATES[up] ? up : 'SURVIVING';
+   const up = String(s || '').toUpperCase();
+   return PET_STATES[up] ? up : 'SURVIVING';
 }
+
 
 function clamp0to100(x) {
-  const n = Number(x);
-  if (!Number.isFinite(n)) return 50;
-  return Math.max(0, Math.min(100, Math.round(n)));
+   const n = Number(x);
+   if (!Number.isFinite(n)) return 50;
+   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-/* ------------------------------ UI composition ----------------------------- */
-// Always safe-update the UI (even if fields are missing).
+
+/* -------------------------- Update Pet Display -------------------------- */
 function updatePetDisplay(analysis) {
   const petArea     = document.getElementById('petArea');
   const pet         = document.getElementById('pet');
@@ -256,8 +289,246 @@ document.getElementById('submitBtn').addEventListener('click', handleSubmit);
 document.addEventListener('DOMContentLoaded', () => { loadPetState(); });
 
 // Enter to submit
+   const petArea = document.getElementById('petArea');
+   const pet = document.getElementById('pet');
+   const stateName = document.getElementById('stateName');
+   const petMessage = document.getElementById('petMessage');
+   const stats = document.getElementById('stats');
+   const healthBar = document.getElementById('healthBar');
+   const healthValue = document.getElementById('healthValue');
+
+
+   const stateKey = toAllowedState(analysis?.state);
+   const current = PET_STATES[stateKey];
+
+
+   if (petArea) petArea.className = 'pet-area ' + current.className;
+   if (pet) {
+       pet.textContent = current.emoji;
+       pet.className = 'pet ' + current.animation;
+   }
+   if (stateName) stateName.textContent = current.name;
+
+
+   const health = clamp0to100(analysis?.health);
+   if (typeof analysis?.health === 'number') {
+       if (stats) stats.style.display = 'flex';
+       if (healthBar) healthBar.style.width = health + '%';
+       if (healthValue) healthValue.textContent = health + '%';
+   } else {
+       if (stats) stats.style.display = 'none';
+   }
+
+
+   const safeMsg = String(analysis?.message || '').trim();
+   if (safeMsg && petMessage) petMessage.textContent = safeMsg;
+}
+
+
+/* ----------------------- Feed Penny (Gemini Analysis) ----------------------- */
+async function handleFeedPenny() {
+   const initialBalance = document.getElementById('initialBalance').value;
+   const monthlyEarnings = document.getElementById('monthlyEarnings').value;
+   const monthlyBudget = document.getElementById('monthlyBudget').value;
+
+
+   if (!initialBalance || !monthlyEarnings || !monthlyBudget) {
+       alert('Please fill in all financial info fields!');
+       return;
+   }
+
+
+   // Save to localStorage
+   saveFinancialData({
+       initialBalance: parseFloat(initialBalance),
+       monthlyEarnings: parseFloat(monthlyEarnings),
+       monthlyBudget: parseFloat(monthlyBudget)
+   });
+
+
+   // Set current balance to initial balance if not set
+   if (getCurrentBalance() === 0) {
+       setCurrentBalance(parseFloat(initialBalance));
+   }
+
+
+   const feedBtn = document.getElementById('feedPennyBtn');
+   const petMsgEl = document.getElementById('petMessage');
+
+
+   if (feedBtn) {
+       feedBtn.disabled = true;
+       feedBtn.textContent = 'Analyzing...';
+   }
+   if (petMsgEl) petMsgEl.textContent = 'Gemini is analyzing your finances...';
+
+
+   try {
+       // Convert to format expected by gemini-service
+       const formData = {
+           income: monthlyEarnings,
+           spending: monthlyBudget,
+           savings: initialBalance,
+           debt: '0',
+           monthlyInvestments: '0',
+           investmentBalance: '0'
+       };
+
+
+       const analysis = await analyzeFinancialData(formData);
+      
+       updatePetDisplay(analysis);
+       savePetState(analysis);
+       window.switchPage('petView');
+
+
+       const nextMsg = (analysis && typeof analysis.message === 'string' && analysis.message.trim()) || 'Analysis complete!';
+       if (petMsgEl) petMsgEl.textContent = nextMsg;
+
+
+   } catch (error) {
+       console.error('Feed Penny failed:', error);
+       if (petMsgEl) petMsgEl.textContent = `Oops! ${error?.message || 'Something went wrong.'}`;
+   } finally {
+       if (feedBtn) {
+           feedBtn.disabled = false;
+           feedBtn.textContent = 'Feed Penny';
+       }
+   }
+}
+
+
+/* --------------------------- Deposit Handler --------------------------- */
+async function handleDeposit() {
+   const depositInput = document.getElementById('depositAmount');
+   const amount = parseFloat(depositInput.value);
+
+
+   if (!amount || amount <= 0) {
+       alert('Please enter a valid deposit amount!');
+       return;
+   }
+
+
+   // Update balance
+   const newBalance = getCurrentBalance() + amount;
+   setCurrentBalance(newBalance);
+
+
+   // Show positive reaction
+   const petReaction = {
+       state: 'THRIVING',
+       health: 85,
+       message: `Yay! You deposited $${amount.toFixed(2)}! Your balance is now $${newBalance.toFixed(2)}. Keep it up!`
+   };
+
+
+   updatePetDisplay(petReaction);
+   savePetState(petReaction);
+
+
+   // Clear input and switch to pet view
+   depositInput.value = '';
+   window.switchPage('petView');
+}
+
+
+/* --------------------------- Withdraw Handler --------------------------- */
+async function handleWithdraw() {
+   const withdrawInput = document.getElementById('withdrawAmount');
+   const amount = parseFloat(withdrawInput.value);
+
+
+   if (!amount || amount <= 0) {
+       alert('Please enter a valid withdrawal amount!');
+       return;
+   }
+
+
+   const currentBalance = getCurrentBalance();
+
+
+   if (amount > currentBalance) {
+       alert(`You can't withdraw more than your balance ($${currentBalance.toFixed(2)})!`);
+       return;
+   }
+
+
+   // Update balance
+   const newBalance = currentBalance - amount;
+   setCurrentBalance(newBalance);
+
+
+   // Show reaction based on withdrawal size
+   const percentWithdrawn = (amount / currentBalance) * 100;
+   let petReaction;
+
+
+   if (percentWithdrawn > 50) {
+       // Large withdrawal - worried
+       petReaction = {
+           state: 'STRUGGLING',
+           health: 40,
+           message: `Whoa! You withdrew $${amount.toFixed(2)} (${percentWithdrawn.toFixed(0)}% of your balance). Be careful! Balance: $${newBalance.toFixed(2)}`
+       };
+   } else if (percentWithdrawn > 25) {
+       // Medium withdrawal - cautious
+       petReaction = {
+           state: 'SURVIVING',
+           health: 60,
+           message: `You withdrew $${amount.toFixed(2)}. That's a decent chunk. Balance now: $${newBalance.toFixed(2)}`
+       };
+   } else {
+       // Small withdrawal - ok
+       petReaction = {
+           state: 'HEALTHY',
+           health: 75,
+           message: `You withdrew $${amount.toFixed(2)}. Small withdrawal, all good! Balance: $${newBalance.toFixed(2)}`
+       };
+   }
+
+
+   updatePetDisplay(petReaction);
+   savePetState(petReaction);
+
+
+   // Clear input and switch to pet view
+   withdrawInput.value = '';
+   window.switchPage('petView');
+}
+
+
+/* ------------------------- Event Listeners ------------------------- */
+document.addEventListener('DOMContentLoaded', () => {
+   loadPetState();
+   updateBalanceDisplay();
+
+
+   // Load saved financial data into inputs
+   const saved = getFinancialData();
+   if (saved.initialBalance) document.getElementById('initialBalance').value = saved.initialBalance;
+   if (saved.monthlyEarnings) document.getElementById('monthlyEarnings').value = saved.monthlyEarnings;
+   if (saved.monthlyBudget) document.getElementById('monthlyBudget').value = saved.monthlyBudget;
+});
+
+
+// Button event listeners
+document.getElementById('feedPennyBtn').addEventListener('click', handleFeedPenny);
+document.getElementById('depositBtn').addEventListener('click', handleDeposit);
+document.getElementById('withdrawBtn').addEventListener('click', handleWithdraw);
+
+
+// Enter key support
 document.querySelectorAll('input').forEach(input => {
-  input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleSubmit();
-  });
+   input.addEventListener('keypress', (e) => {
+       if (e.key === 'Enter') {
+           if (input.id === 'depositAmount') {
+               handleDeposit();
+           } else if (input.id === 'withdrawAmount') {
+               handleWithdraw();
+           } else {
+               handleFeedPenny();
+           }
+       }
+   });
 });
