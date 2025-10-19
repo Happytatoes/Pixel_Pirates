@@ -412,6 +412,19 @@ body {
 /* in style.css */
 #petArea { position: relative; }
 
+/* Center the pet and render .webp crisply in your pixel UI */
+.pet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px; /* keeps layout stable while image loads */
+}
+
+.pet img.pet-img {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 
 
 /* Balance Display */
