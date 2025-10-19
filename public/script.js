@@ -1,7 +1,7 @@
 import { analyzeFinancialData } from './gemini-service.js';
 
 window.switchPage = function(pageId) {
-    console.log('Switching to:', pageId); // Debug
+    //console.log('Switching to:', pageId); // Debug
     
     // Hide all pages
     const pages = document.querySelectorAll('.page');
@@ -171,65 +171,6 @@ function updatePetDisplay(petState) {
     }
 }
 
-// NEW: Handle Form Submission with Gemini API
-/*
-async function handleSubmit() {
-    const income = document.getElementById('income').value;
-    const spending = document.getElementById('spending').value;
-    const savings = document.getElementById('savings').value;
-    const debt = document.getElementById('debt').value;
-    const monthlyInvestments = document.getElementById('monthlyInvestments').value;
-    const investmentBalance = document.getElementById('investmentBalance').value;
-
-    if (!income || !spending || !savings || !debt || !monthlyInvestments || !investmentBalance) {
-        alert('Please fill in all fields!');
-        return;
-    }
-
-    const formData = {
-        income,
-        spending,
-        savings,
-        debt,
-        monthlyInvestments,
-        investmentBalance
-    };
-
-    // Show analyzing state
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Analyzing with AI...';
-    
-    document.getElementById('petMessage').textContent = 'Gemini is analyzing your finances... This might take a moment!';
-
-    try {
-        const analysis = await analyzeFinancialData(formData);
-        updatePetDisplay(analysis);
-        savePetState(analysis);
-
-        // NEW: Save last update time
-        localStorage.setItem('lastUpdate', new Date().toLocaleString());
-        document.getElementById('lastUpdate').textContent = 'Just now';
-        
-        // NEW: Switch to pet view to see results
-        document.querySelector('[data-page="petView"]').click();
-
-    } catch (error) {
-        console.error('Analysis failed:', error);
-        
-        // Show error message
-        document.getElementById('petMessage').textContent = 'Oops! Something went wrong. Try again?';
-        
-        // Optionally use fallback
-        // const fallback = getFallbackAnalysis(formData);
-        // updatePetDisplay(fallback);
-        
-    } finally {
-        // Re-enable button
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Feed Penny 🍼';
-    }
-}*/
 async function handleSubmit() {
     const income = document.getElementById('income').value;
     const spending = document.getElementById('spending').value;
@@ -261,12 +202,7 @@ async function handleSubmit() {
     try {
         const analysis = await analyzeFinancialData(formData);
         updatePetDisplay(analysis);
-        
-        // Save last update time
-        const now = new Date().toLocaleString();
-        localStorage.setItem('lastUpdate', now);
-        document.getElementById('lastUpdate').textContent = 'Just now';
-        
+    
         // Switch back to pet view to see results!
         window.switchPage('petView');
 

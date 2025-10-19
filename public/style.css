@@ -1,3 +1,11 @@
+*,
+input,
+button,
+select,
+textarea {
+    font-family: 'Press Start 2P', monospace;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -6,7 +14,7 @@
 
 body {
     /*font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;*/
-    font-family: 'Press Start 2P', sans-serif;
+    font-family: 'Press Start 2P';
     background: linear-gradient(to bottom right, #d4f1f4, #c1e1dc, #fef6e4);
     min-height: 100vh;
     display: flex;
