@@ -96,7 +96,7 @@ Style rules:
 
 Return EXACTLY this shape:
 {
-  "state": "FLATLINED|CRITICAL|STRUGGLING|SURVIVING|HEALTHY|THRIVING|LEGENDARY",
+  "state": "ATROCIOUS|CRITICAL|STRUGGLING|SURVIVING|HEALTHY|THRIVING|FANTASTIC",
   "health": 0,
   "headline": "string",
   "advice": ["string","string","string"]
@@ -149,7 +149,7 @@ function stringifyErr(x) {
 }
 
 function looksNormalized(obj){
-  const allowed = ['FLATLINED','CRITICAL','STRUGGLING','SURVIVING','HEALTHY','THRIVING','LEGENDARY'];
+  const allowed = ['ATROCIOUS','CRITICAL','STRUGGLING','SURVIVING','HEALTHY','THRIVING','FANTASTIC'];
   return (
     obj &&
     typeof obj.health === 'number' &&
@@ -233,7 +233,7 @@ function finalizeForUI(obj){
 }
 
 function toAllowedState(s){
-  const allowed = ['FLATLINED','CRITICAL','STRUGGLING','SURVIVING','HEALTHY','THRIVING','LEGENDARY'];
+  const allowed = ['ATROCIOUS','CRITICAL','STRUGGLING','SURVIVING','HEALTHY','THRIVING','FANTASTIC'];
   const up = String(s || '').toUpperCase();
   return allowed.includes(up) ? up : 'SURVIVING';
 }
@@ -323,13 +323,13 @@ function localSubscores(m){
 function clamp01(x){ return Math.min(1, Math.max(0, x)); }
 
 function stateFromH(h){
-  if (h < 15) return 'FLATLINED';
+  if (h < 15) return 'ATROCIOUS';
   if (h < 30) return 'CRITICAL';
   if (h < 45) return 'STRUGGLING';
   if (h < 60) return 'SURVIVING';
   if (h < 75) return 'HEALTHY';
   if (h < 90) return 'THRIVING';
-  return 'LEGENDARY';
+  return 'FANTASTIC';
 }
 
 /* ------------------------ Kid-friendly sentence builders ------------------- */
@@ -340,7 +340,7 @@ function monthsWords(x){ return `${(Math.round(x*10)/10).toFixed(1)} months`; }
 
 function buildKidHeadline(state, h){
   const hInt = Math.round(h);
-  if (state === 'LEGENDARY') return `Your pet is very strong with a score of ${hInt} points.`;
+  if (state === 'FANTASTIC') return `Your pet is very strong with a score of ${hInt} points.`;
   if (state === 'THRIVING')  return `Your pet is doing very well with a score of ${hInt} points.`;
   if (state === 'HEALTHY')   return `Your pet is steady with a score of ${hInt} points.`;
   if (state === 'SURVIVING') return `Your pet is okay with a score of ${hInt} points.`;

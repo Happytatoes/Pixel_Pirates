@@ -1,132 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penny - Your Financial Pet</title>
-    <link rel="stylesheet" href="style.css">
-	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/speech-bubble.css">
-    <script src="/speech-bubble.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Penny - Your Financial Pet</title>
 
+  <!-- Fonts + Styles -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="/speech-bubble.css"/>
+
+  <!-- Mini bubble controller (positions the closed bubble above the pet) -->
+  <script src="/speech-bubble.js" defer></script>
 </head>
+
 <body>
-    <div class="container">
-        <div class="card">
-            <!-- Page 1: Pet View -->
-            <div id="petView" class="page active">
-                <div class="header">
-                    <div class="header-left">
-                        <h1>Penny :D</h1>
-                    </div>
-                </div>
-                <!-- extra comment -->
-                <div class="pet-area" id="petArea">
-                    <div class="speech-bubble">
-                        <p id="petMessage">Feed me your financial data! I'm ready to hatch!</p>
-                    </div>
+  <div class="container">
+    <div class="card">
 
-                    <div class="pet" id="pet">🥚</div>
-                    <div class="state-name" id="stateName">EGG</div>
-
-                    <div class="stats" id="stats" style="display: none;">
-                        <div class="stat-bar">
-                            <div class="stat-header">
-                                <span class="stat-label">❤️ Health</span>
-                                <span class="stat-value" id="healthValue">0%</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill health-fill" id="healthBar"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            
-            </div>
-
-            <!-- Page 2: Finance Input View -->
-            <div id="financeView" class="page">
-               <div class="header">
-                   <div class="header-left">
-                       <h1>Your Finances</h1>
-                   </div>
-               </div>
-               <div class="form-area">
-                   <!-- Current Balance (Display Only) -->
-                   <div class="balance-display">
-                       <h2>Current Balance</h2>
-                       <div class="balance-amount" id="currentBalanceDisplay">$0</div>
-                   </div>
-
-
-                   <hr class="divider">
-                   <!-- Financial Inputs -->
-                   <h3 class="section-title">Financial Info</h3>
-                  
-                   <div class="input-group">
-                       <label>Initial Balance</label>
-                       <input type="number" id="initialBalance" placeholder="put a number here">
-                   </div>
-
-
-                   <div class="input-group">
-                       <label>Monthly Earnings</label>
-                       <input type="number" id="monthlyEarnings" placeholder="put a number here">
-                   </div>
-
-
-                   <div class="input-group">
-                       <label>Monthly Budget</label>
-                       <input type="number" id="monthlyBudget" placeholder="put a number here">
-                   </div>
-
-
-                   <button class="submit-btn" id="feedPennyBtn">
-                       Feed Penny
-                   </button>
-                   <hr class="divider">
-                   <!-- Deposit Section -->
-                   <h3 class="section-title">Deposit</h3>
-                   <div class="action-group">
-                       <input type="number" id="depositAmount" placeholder="put a number here" class="action-input">
-                       <button class="action-btn deposit-btn" id="depositBtn">
-                           Deposit
-                       </button>
-                   </div>
-
-
-                   <!-- Withdraw Section -->
-                   <h3 class="section-title">Withdraw</h3>
-                   <div class="action-group">
-                       <input type="number" id="withdrawAmount" placeholder="put a number here" class="action-input">
-                       <button class="action-btn withdraw-btn" id="withdrawBtn">
-                           Withdraw
-                       </button>
-                   </div>
-                   <div class="action-group"></div>
-                    <button class="action-btn" id="resetBtn" title="Reset Everything">
-                            Reset All Data
-                    </button>
-                    </div>
-                </div>   
-           </div>
-
-            <!-- Bottom Navigation (INSIDE CARD) -->
-            <nav class="bottom-nav">
-                <button class="nav-btn active" onclick="switchPage('petView')">
-                    <span class="nav-icon">🏠</span>
-                    <span class="nav-label">Pet</span>
-                </button>
-                <button class="nav-btn" onclick="switchPage('financeView')">
-                    <span class="nav-icon">📊</span>
-                    <span class="nav-label">Finances</span>
-                </button>
-            </nav>
+      <!-- Page 1: Pet View -->
+      <div id="petView" class="page active">
+        <div class="header">
+          <div class="header-left"><h1>Penny :D</h1></div>
         </div>
-    </div>
 
-    <script type="module" src="config.js"></script>
-    <script type="module" src="gemini-service.js"></script>
-    <script type="module" src="script.js"></script>
+        <div class="pet-area" id="petArea">
+          <!-- Optional always-open retro bubble (legacy text area) -->
+          <div class="speech-bubble">
+            <p id="petMessage">Feed me your financial data! I'm ready to hatch!</p>
+          </div>
+
+          <!-- Pet sprite (img injected by script.js) -->
+          <div class="pet" id="pet">🥚</div>
+          <div class="state-name" id="stateName">FEED ME FINANCIAL DATA SO I CAN HATCH!</div>
+
+          <!-- Stats -->
+          <br><br><br><br>
+          <div class="stats" id="stats" style="display: none;">
+            <div class="stat-bar">
+              <div class="stat-header">
+                <span class="stat-label">❤️ Health</span>
+                <span class="stat-value" id="healthValue">0%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill health-fill" id="healthBar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page 2: Finance Input View -->
+      <div id="financeView" class="page">
+        <div class="header">
+          <div class="header-left"><h1>Your Finances</h1></div>
+        </div>
+
+        <div class="form-area">
+          <!-- Current Balance (Display Only) -->
+          <div class="balance-display">
+            <h2>Current Balance</h2>
+            <div class="balance-amount" id="currentBalanceDisplay">$0</div>
+          </div>
+
+          <hr class="divider" />
+
+          <!-- Financial Inputs -->
+          <h3 class="section-title">Financial Info</h3>
+
+          <div class="input-group">
+            <label for="initialBalance">Initial Balance</label>
+            <input type="number" id="initialBalance" placeholder="put a number here" />
+          </div>
+
+          <div class="input-group">
+            <label for="monthlyEarnings">Monthly Earnings</label>
+            <input type="number" id="monthlyEarnings" placeholder="put a number here" />
+          </div>
+
+          <div class="input-group">
+            <label for="monthlyBudget">Monthly Budget</label>
+            <input type="number" id="monthlyBudget" placeholder="put a number here" />
+          </div>
+
+          <button class="submit-btn" id="feedPennyBtn">Feed Penny</button>
+
+          <hr class="divider" />
+
+          <!-- Deposit Section -->
+          <h3 class="section-title">Deposit</h3>
+          <div class="action-group">
+            <input type="number" id="depositAmount" class="action-input" placeholder="put a number here" />
+            <button class="action-btn deposit-btn" id="depositBtn">Deposit</button>
+          </div>
+
+          <!-- Withdraw Section -->
+          <h3 class="section-title">Withdraw</h3>
+          <div class="action-group">
+            <input type="number" id="withdrawAmount" class="action-input" placeholder="put a number here" />
+            <button class="action-btn withdraw-btn" id="withdrawBtn">Withdraw</button>
+          </div>
+
+          <!-- Reset -->
+          <div class="action-group">
+            <button class="action-btn" id="resetBtn" title="Reset Everything">Reset All Data</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Navigation (INSIDE CARD) -->
+      <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="switchPage('petView')">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Pet</span>
+        </button>
+        <button class="nav-btn" onclick="switchPage('financeView')">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Finances</span>
+        </button>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- App scripts -->
+  <script type="module" src="config.js"></script>
+  <script type="module" src="gemini-service.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

@@ -21,7 +21,7 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 /* ------------------------------ Deterministic ------------------------------ */
 
 const ALLOWED_STATES = [
-  'FLATLINED','CRITICAL','STRUGGLING','SURVIVING','HEALTHY','THRIVING','LEGENDARY'
+  'ATROCIOUS','CRITICAL','STRUGGLING','SURVIVING','HEALTHY','THRIVING','FANTASTIC'
 ];
 
 const toAllowedState = s => (ALLOWED_STATES.includes(String(s).toUpperCase()) ? String(s).toUpperCase() : 'SURVIVING');
@@ -44,13 +44,13 @@ function computeMetrics(inputs) {
 }
 
 function pickState(m) {
-  if (m.inc <= 0 || m.budget_ratio >= 1.5 || m.runway_months < 0.5) return 'FLATLINED';
+  if (m.inc <= 0 || m.budget_ratio >= 1.5 || m.runway_months < 0.5) return 'ATROCIOUS';
   if (m.budget_ratio > 1.10 || m.runway_months < 1.0 || m.dti > 1.20) return 'CRITICAL';
   if ((m.budget_ratio > 0.90 && m.budget_ratio <= 1.10) || (m.runway_months >= 1.0 && m.runway_months < 2.0) || (m.dti > 0.60 && m.dti <= 1.20)) return 'STRUGGLING';
   if ((m.budget_ratio > 0.80 && m.budget_ratio <= 0.90) || (m.runway_months >= 2.0 && m.runway_months < 3.0) || (m.invest_rate >= 0.05 && m.invest_rate < 0.10)) return 'SURVIVING';
   if (m.budget_ratio <= 0.80 && (m.runway_months >= 3.0 && m.runway_months <= 6.0) && m.invest_rate >= 0.10 && m.dti <= 0.60) return 'HEALTHY';
   if (m.budget_ratio <= 0.70 && (m.runway_months > 6.0 && m.runway_months <= 12.0) && m.invest_rate >= 0.12 && m.dti <= 0.40) return 'THRIVING';
-  if (m.budget_ratio <= 0.60 && m.runway_months > 12.0 && m.invest_rate >= 0.15 && m.dti <= 0.20) return 'LEGENDARY';
+  if (m.budget_ratio <= 0.60 && m.runway_months > 12.0 && m.invest_rate >= 0.15 && m.dti <= 0.20) return 'FANTASTIC';
   return 'SURVIVING';
 }
 
@@ -198,13 +198,13 @@ app.post('/analyze', async (req, res) => {
 
 function buildLocalAdvice(m, state) {
   const headline =
-    state === 'LEGENDARY' ? 'Legend status — systems humming. 🚀' :
+    state === 'FANTASTIC' ? 'Fantastic status — systems humming. 🚀' :
     state === 'THRIVING'  ? 'Strong trajectory — keep compounding. 📈' :
     state === 'HEALTHY'   ? 'On plan — maintain discipline. ✅' :
     state === 'SURVIVING' ? 'Stable, but tighten a few screws. 🛠️' :
     state === 'STRUGGLING'? 'Pressure building — quick wins needed. ⚠️' :
     state === 'CRITICAL'  ? 'Critical — address cash risk now. 🆘' :
-                            'Flatlined — emergency mode. 💀';
+                            'Atrocious — emergency mode. 💀';
 
   const pct = x => isFinite(x) ? `${Math.round(x*100)}%` : '∞';
   const one = (m.budget_ratio <= 0.8)
