@@ -19,7 +19,7 @@ window.debugGemini = async function () {
   } catch (err) {
     console.error('Debug failed:', err);
   }
-}
+};
 window.switchPage = function(pageId) {
     //console.log('Switching to:', pageId); // Debug
     
